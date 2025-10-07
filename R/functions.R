@@ -7,7 +7,7 @@
 #' @return None
 #' @examples
 #' \dontrun{
-#'  set_sea_track_folder("/path/to/sea/track/folder")
+#' set_sea_track_folder("/path/to/sea/track/folder")
 #' }
 #' @export
 set_sea_track_folder <- function(dir) {
@@ -52,9 +52,8 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 #' @param colony A character string specifying the name of the colony.
 #' @return A character string representing the path to the master import file.
 #' @examples
-#'
 #' \dontrun{
-#'  get_master_import_folder("ColonyA")
+#' get_master_import_folder("ColonyA")
 #' }
 #' @export
 get_master_import_path <- function(colony) {
@@ -72,14 +71,14 @@ get_master_import_path <- function(colony) {
 
     # Check if the specified colony exists
     if (!(colony %in% colony_names)) {
-        #stop(paste("Colony", colony, "not found in the master import folder. Available colonies are:", paste(colony_names, collapse = ", ")))
+        # stop(paste("Colony", colony, "not found in the master import folder. Available colonies are:", paste(colony_names, collapse = ", ")))
         all_country_colonies <- get_all_locations()
         colony_bool <- sapply(all_country_colonies, function(country_colonies) {
             return(colony %in% country_colonies)
         })
         country <- names(colony_bool)[colony_bool]
         colony_file_name <- files[colony_names == country]
-    }else {
+    } else {
         colony_file_name <- files[colony_names == colony]
     }
 
@@ -144,8 +143,8 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
     log_trace("Loading file: ", file_path)
     # Iterate through sheets and read data
     data_list <- lapply(1:length(sheets), function(sheet_index) {
-        sheet = sheets[sheet_index]
-        sheet_col_types = col_types[[sheet_index]]
+        sheet <- sheets[sheet_index]
+        sheet_col_types <- col_types[[sheet_index]]
         log_trace("Loading sheet: ", sheet)
         current_sheet <- read_excel(file_path, sheet = sheet, skip = skip, na = c("", "End", "end"), col_types = sheet_col_types)
         # remove empty rows
@@ -169,11 +168,10 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
         if (drop_unnamed) {
             unnamed_cols <- grepl("^\\.\\.\\.", names(current_sheet)) | is.na(names(current_sheet))
             if (sum(unnamed_cols > 0)) {
-            # Drop columns that are unnamed (i.e., their names start with "..." or are NA)
-            log_trace("Dropping ", sum(unnamed_cols), " unnamed columns from sheet: ", sheet)
-            current_sheet <- current_sheet[, !unnamed_cols]
+                # Drop columns that are unnamed (i.e., their names start with "..." or are NA)
+                log_trace("Dropping ", sum(unnamed_cols), " unnamed columns from sheet: ", sheet)
+                current_sheet <- current_sheet[, !unnamed_cols]
             }
-
         }
         return(current_sheet)
     })
@@ -191,9 +189,9 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
 load_nonresponsive_sheet <- function(file_path, manufacturer = c("Lotek", "MigrateTech")) {
     manufacturer <- match.arg(manufacturer)
     loaded_sheet <- NULL
-    #Check if file already exists
+    # Check if file already exists
     if (file.exists(file_path)) {
-        #If so, load it
+        # If so, load it
         loaded_sheet <- read_excel(file_path)
     } else {
         if (manufacturer == "Lotek") {
@@ -208,7 +206,7 @@ load_nonresponsive_sheet <- function(file_path, manufacturer = c("Lotek", "Migra
                 download_date = as.Date(character()),
                 comment = character()
             )
-         } else if (manufacturer == "MigrateTech") {
+        } else if (manufacturer == "MigrateTech") {
             loaded_sheet <- tibble(
                 logger_serial_no = character(),
                 logger_model = character(),
@@ -275,7 +273,7 @@ load_master_import <- function(colony) {
 
     # Desired sheets
     sheets <- c("METADATA", "STARTUP_SHUTDOWN")
-    startup_col_types = c(
+    startup_col_types <- c(
         logger_serial_no = "text",
         logger_model = "text",
         producer = "text",
@@ -344,7 +342,6 @@ load_partner_metadata <- function(file_path) {
 #' }
 #' @export
 append_encounter_data <- function(master_metadata, encounter_data) {
-
     if (nrow(encounter_data) == 0) {
         log_info("No encounter data to append.")
         return(master_metadata)
@@ -448,7 +445,7 @@ add_loggers_from_startup <- function(master_startup) {
         if (is.null(startup_file)) {
             next
         }
-        #log_warn(paste(names(warnings()), collapse = "\n"))
+        # log_warn(paste(names(warnings()), collapse = "\n"))
 
         # Skip files whose columns do not match master_startup
         if (!all(colnames(master_startup) %in% colnames(startup_file))) {
@@ -475,9 +472,9 @@ add_loggers_from_startup <- function(master_startup) {
         # }
 
         # Filter to only include rows with intended_location in locations
-        startup_file <- startup_file[startup_file$intended_location %in% locations
-            & !is.na(startup_file$starttime_gmt)
-            & !is.na(startup_file$logger_serial_no), ]
+        startup_file <- startup_file[startup_file$intended_location %in% locations &
+            !is.na(startup_file$starttime_gmt) &
+            !is.na(startup_file$logger_serial_no), ]
 
         if (nrow(startup_file) == 0) {
             next
@@ -487,8 +484,8 @@ add_loggers_from_startup <- function(master_startup) {
         new_logger_indices <- which(!startup_logger_id_date %in% master_logger_id_date)
         if (length(new_logger_indices) > 0) {
             new_loggers <- startup_file[new_logger_indices, ]
-            for (date_index in which(master_classes == "Date")){
-                new_loggers[, date_index] = sapply(new_loggers[, date_index], as.Date)
+            for (date_index in which(master_classes == "Date")) {
+                new_loggers[, date_index] <- sapply(new_loggers[, date_index], as.Date)
             }
 
             n_loggers <- nrow(new_loggers)
@@ -499,15 +496,13 @@ add_loggers_from_startup <- function(master_startup) {
             log_success("New loggers:\n", paste(capture.output(print(logger_summary, n = n_loggers))[c(-1, -3)], collapse = "\n"))
 
             master_startup <- rbind(master_startup, new_loggers)
-
-
         }
     }
     return(master_startup)
 }
 
 
-#'Find a logger's unfinished session in the master startup data frame
+#' Find a logger's unfinished session in the master startup data frame
 #' This function finds the unfinished session for a given logger in the master startup data frame.
 #'
 #' @param master_startup A data frame containing the master startup and shutdown information.
@@ -530,45 +525,45 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
         log_trace(paste0("No unfinished session found for logger ID: ", logger_id, "."))
         return(NULL)
     } else if (nrow(master_startup_unfinished) >= 1) {
+        if (nrow(master_startup_unfinished) > 1) {
+            log_trace(paste0("Multiple unfinished sessions without end dates found for logger ID: ", logger_id, ". Trying to use closest startup date."))
+        } else {
+            log_trace(paste0("Unfinished session found for logger ID: ", logger_id, ". Checking dates."))
+        }
 
-            if (nrow(master_startup_unfinished) > 1) {
-                log_trace(paste0("Multiple unfinished sessions without end dates found for logger ID: ", logger_id, ". Trying to use closest startup date."))
-            }else {
-                log_trace(paste0("Unfinished session found for logger ID: ", logger_id, ". Checking dates."))
+        if (!is.na(logger_download_stop_date)) {
+            # Check the closest startup date before the download date where there is not a finished session in between
+
+            # calculate difference between reported download date and startup date
+
+            logger_session_indices <- which(master_startup$logger_serial_no == logger_id &
+                !is.na(master_startup$starttime_gmt))
+
+            logger_sessions <- master_startup[logger_session_indices, ]
+
+            time_diffs <- as.numeric(difftime(logger_download_stop_date,
+                logger_sessions$starttime_gmt,
+                units = "days"
+            ))
+
+            logger_sessions_finished <- which(!(is.na(logger_sessions$shutdown_date) & is.na(logger_sessions$download_date)))
+
+            time_diffs[time_diffs < 0] <- NA # Ignore future dates
+            if (length(logger_sessions_finished) > 0) {
+                time_diffs[1:max(logger_sessions_finished)] <- NA # ignore finished sessions and unfinished sessions falling before a finished session
             }
 
-            if (!is.na(logger_download_stop_date)) {
-                # Check the closest startup date before the download date where there is not a finished session in between
-
-                # calculate difference between reported download date and startup date
-
-                logger_session_indices <- which(master_startup$logger_serial_no == logger_id &
-                                                    !is.na(master_startup$starttime_gmt))
-
-                logger_sessions <- master_startup[logger_session_indices, ]
-
-                time_diffs <- as.numeric(difftime(logger_download_stop_date,
-                                                    logger_sessions$starttime_gmt,
-                                                    units = "days"))
-
-                logger_sessions_finished <- which(!(is.na(logger_sessions$shutdown_date) & is.na(logger_sessions$download_date)))
-
-                time_diffs[time_diffs < 0] <- NA  # Ignore future dates
-                if (length(logger_sessions_finished) > 0) {
-                    time_diffs[1:max(logger_sessions_finished)] <- NA #ignore finished sessions and unfinished sessions falling before a finished session
-                }
-
-                closest_index <- which(time_diffs == min(time_diffs, na.rm = TRUE) & !is.na(time_diffs))
-                if (length(closest_index) == 0) {
-                    log_trace(paste("No suitable unfinished session found for:", logger_id))
-                    return(NULL)
-                }
-                unfinished_indices <- logger_session_indices[closest_index]
-                master_startup_unfinished <- master_startup[unfinished_indices, ]
-            } else {
-                log_trace(paste0("No download date available for logger ID:", logger_id, ". Cannot resolve multiple unfinished sessions."))
+            closest_index <- which(time_diffs == min(time_diffs, na.rm = TRUE) & !is.na(time_diffs))
+            if (length(closest_index) == 0) {
+                log_trace(paste("No suitable unfinished session found for:", logger_id))
                 return(NULL)
             }
+            unfinished_indices <- logger_session_indices[closest_index]
+            master_startup_unfinished <- master_startup[unfinished_indices, ]
+        } else {
+            log_trace(paste0("No download date available for logger ID:", logger_id, ". Cannot resolve multiple unfinished sessions."))
+            return(NULL)
+        }
     }
     log_success(paste("Found unfinished session for logger ID:", logger_id, logger_download_stop_date))
     unfinished_summary <- master_startup_unfinished[, c("logger_serial_no", "starttime_gmt", "intended_species", "intended_location")]
@@ -627,7 +622,6 @@ get_all_locations <- function() {
 #' }
 #' @export
 set_master_startup_value <- function(master_startup, index, column, value) {
-
     master_startup[index, column] <- value
     log_trace(paste0("Set value in master_startup: row ", index, ", column '", column, "' to '", value, "'"))
     return(master_startup)
@@ -686,7 +680,6 @@ set_comments <- function(master_startup, index, logger_comments) {
 #' }
 #' @export
 handle_returned_loggers <- function(colony, master_startup, logger_returns, restart_times, nonresponsive_list = list()) {
-
     if (nrow(logger_returns) == 0) {
         log_info("No logger returns to process.")
         return(list(master_startup = master_startup, nonresponsive_list = nonresponsive_list))
@@ -733,14 +726,14 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 
     # Handle restarts
     log_trace("Handle restarts")
-    restart_indexes = which(logger_returns$`stored or sent to?` == "redeployed")
+    restart_indexes <- which(logger_returns$`stored or sent to?` == "redeployed")
     if (length(restart_indexes) > 0) {
-        added_sessions = tibble()
-        for (i in restart_indexes){
-            return_restart = logger_returns[i, ]
-            logger_id = return_restart$logger_id
-            downloader = return_restart$`downloaded by`
-            restart_info = restart_times[restart_times$logger_id == logger_id, ]
+        added_sessions <- tibble()
+        for (i in restart_indexes) {
+            return_restart <- logger_returns[i, ]
+            logger_id <- return_restart$logger_id
+            downloader <- return_restart$`downloaded by`
+            restart_info <- restart_times[restart_times$logger_id == logger_id, ]
             if (nrow(restart_info) == 0) {
                 stop(paste("Logger ID:", logger_id, "not present in restart times sheet"))
             }
@@ -751,8 +744,8 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
             if (nrow(previous_sessions) == 0) {
                 stop(paste("Logger ID:", logger_id, "not present in master startup sheet"))
             }
-            #generate new row
-            new_session = tibble(
+            # generate new row
+            new_session <- tibble(
                 logger_serial_no = logger_id,
                 logger_model = previous_sessions$logger_model[1],
                 producer = previous_sessions$producer[1],
@@ -775,8 +768,8 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
                 decomissioned = NA,
                 shutdown_date = NA,
                 comment = restart_info$comment[1],
-                )
-            added_sessions = rbind(added_sessions, new_session)
+            )
+            added_sessions <- rbind(added_sessions, new_session)
         }
         log_success("Adding ", nrow(added_sessions), " new sessions from restarts.")
         added_sessions_summary <- added_sessions[, c("logger_serial_no", "logger_model", "production_year", "starttime_gmt", "intended_location")]
@@ -788,7 +781,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
     # HANDLE UNRESPONSIVES
     log_trace("Handle nonresponsive loggers")
 
-    nonresponsive_index = which(logger_returns$`stored or sent to?` == "Nonresponsive")
+    nonresponsive_index <- which(logger_returns$`stored or sent to?` == "Nonresponsive")
     if (length(nonresponsive_index) > 0) {
         nonresponsive_returns <- logger_returns[nonresponsive_index, ]
         # Get manufacturers
@@ -799,7 +792,6 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
         nonresponsive_returns$manufacturer_2[nonresponsive_returns$manufacturer_2 == "biotrack"] <- "lotek"
 
         for (manufacturer in tolower(names(nonresponsive_list))) {
-
             nonresponsive_for_manufacturer <- nonresponsive_returns[nonresponsive_returns$manufacturer_2 == manufacturer, ]
 
             if (nrow(nonresponsive_for_manufacturer) == 0) {
@@ -819,10 +811,10 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
                 comment = nonresponsive_for_manufacturer$comment
             )
             if (manufacturer == "migratetech") {
-                new_nonresponsive$logging_mode = master_startup$logging_mode[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
-                new_nonresponsive$days_delayed = master_startup$days_delayed[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
-                new_nonresponsive$programmed_gmt_time = master_startup$programmed_gmt_time[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
-                new_nonresponsive$priority = NA
+                new_nonresponsive$logging_mode <- master_startup$logging_mode[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
+                new_nonresponsive$days_delayed <- master_startup$days_delayed[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
+                new_nonresponsive$programmed_gmt_time <- master_startup$programmed_gmt_time[match(nonresponsive_for_manufacturer$logger_id, master_startup$logger_serial_no)]
+                new_nonresponsive$priority <- NA
                 # reorder columns
                 new_nonresponsive <- new_nonresponsive[, names(nonresponsive_list[[manufacturer]])]
             }
@@ -851,7 +843,6 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 #' @return An updated version of the master import file, as a list where each element is a sheet from the excel file.
 #' @export
 handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = list()) {
-
     if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
     }
@@ -921,4 +912,3 @@ save_nonresponsive <- function(file_paths, nonresponsive_list) {
         log_success("Saved nonresponsive sheet to: ", file_paths[i])
     }
 }
-

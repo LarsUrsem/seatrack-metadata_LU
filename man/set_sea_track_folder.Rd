@@ -17,6 +17,6 @@ This function sets a global variable used by other functions.
 }
 \examples{
 \dontrun{
- set_sea_track_folder("/path/to/sea/track/folder")
+set_sea_track_folder("/path/to/sea/track/folder")
 }
 }

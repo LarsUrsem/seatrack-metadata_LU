@@ -13,3 +13,4 @@ test_script.R
 ^LICENSE\.md$
 ^doc$
 ^Meta$
+^.env$

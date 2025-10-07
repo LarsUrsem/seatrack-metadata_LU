@@ -16,8 +16,7 @@ A character string representing the path to the master import file.
 This function constructs a path to the master import file for a given colony.
 }
 \examples{
-
 \dontrun{
- get_master_import_folder("ColonyA")
+get_master_import_folder("ColonyA")
 }
 }
