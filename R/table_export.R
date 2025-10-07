@@ -15,7 +15,7 @@
 #' @export
 #' @importFrom openxlsx2 wb_workbook wb_set_col_widths wb_set_row_heights int2col
 #' @importFrom flexlsx wb_add_flextable
-export_appendix_table_excel <- function(ft, file_path, sheet_name = "table", body_cell_width = 4, species_height = 100, lme_width = 4) {
+export_appendix_table_excel <- function(ft, file_path, sheet_name = "table", body_cell_width = 4.5, species_height = 100, lme_width = 4) {
     wb <- openxlsx2::wb_workbook()$add_worksheet(sheet_name)
     wb <- flexlsx::wb_add_flextable(wb, sheet_name, ft)
 
