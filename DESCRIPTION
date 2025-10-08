@@ -18,7 +18,7 @@ Imports:
     openxlsx2,
     tibble,
     DBI,
-    seatrackR,
+    seatrackR
     tidyr,
     flextable
 Suggests: 
