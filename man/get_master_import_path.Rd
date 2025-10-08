@@ -20,3 +20,4 @@ This function constructs a path to the master import file for a given colony.
 get_master_import_folder("ColonyA")
 }
 }
+\concept{metadata}

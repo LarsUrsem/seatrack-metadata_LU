@@ -1,4 +1,37 @@
 url: https://ninanor.github.io/seatrack-metadata/
 template:
   bootstrap: 5
-
+reference:
+  - title: Setup functions
+    desc: Functions to set up the sea track folder and paths.
+    contents:
+      - has_concept("setup")
+  - title: Metdata functions
+    desc: Functions to handle and process metadata sheets.
+  - subtitle: General metadata functions
+    contents:
+      - has_concept("metadata")
+  - subtitle: Nonresponsive metadata functions
+    desc: Functions to load and update non-responsive sheets
+    contents: 
+      - has_concept("nonresponsive")
+  - subtitle: Startup metadata functions
+    desc: Functions to load and update startup sheets
+    contents:
+      - has_concept("startups")
+  - subtitle: Encounter metadata functions
+    desc: Functions to load and update encounter data
+    contents:
+      - has_concept("encounters")
+  - title: Field planning sheet functions
+    desc: Functions to load and handle data from the field planning sheet
+    contents:
+      - has_concept("field_planning")
+  - title: Annual report
+  - subtitle: Appendix table createion
+    desc: Functions to create and export annual report appendix tables
+    contents:
+      - has_concept("appendix_table")
+  - title: General utility functions
+    contents:
+      - has_concept("utility")

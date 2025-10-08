@@ -65,7 +65,6 @@ logger::log_info("Sea track folder set to: ", sea_track_folder)
 Once this is set up you can open a partner metadata file. Note that the files shown in this vignette are missing a number of columns present in the real files.
 
 ```{r fakeloadpartnerdata, eval=FALSE}
-
 partner_data <- load_partner_metadata("Metadata_SEATRACK_2025-TestColony.xlsx")
 
 ```
@@ -115,7 +114,6 @@ You can then load the master file that you wish to update. This can be done by u
 
 ```{r fakeloadmasterdata, eval = FALSE}
 master_import <- load_master_import("TestColony")
-
 ```
 
 ```{r generatemasterdata, echo = FALSE}
@@ -175,9 +173,7 @@ head(master_import$data$METADATA)
 Optionally, you can also load or initialise some sheets of nonresponsive loggers. This function takes a vector of file paths and a vector of manufacturers.
 
 ```{r loadunresponsive}
-
 nonresponsive_list <- load_nonresponsive(c("lotek_sheet.xlsx", "migrate_sheet.xlsx"), c("Lotek", "MigrateTech"))
-
 ```
 
 
@@ -187,15 +183,12 @@ There are several steps to updating the master import sheet. Firstly checking st
 ```{r missing loggers}
 master_import_data <- master_import$data
 updated_startup <- add_loggers_from_startup(master_import_data$`STARTUP_SHUTDOWN`)
-
 ```
 
 Then appending reported encounter data. 
 
 ```{r appendmetadata}
-
 updated_metadata <- append_encounter_data(master_import_data$METADATA, partner_data$`ENCOUNTER DATA`)
-
 ```
 
 Finally the processing reported logger returns and attempts to update the appropriate session in the master startup sheet, setting download status and dates. 
@@ -229,7 +222,6 @@ save_master_sheet(new_master_sheets, master_import$path)
 And the new/modified nonresponsive sheets.
 
 ```{r savenonresponsive, eval=FALSE}
-
 save_nonresponsive(paths, new_nonresponsive_list)
 ```
 

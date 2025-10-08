@@ -25,3 +25,4 @@ This function initializes logging to a specified directory.
 start_logging("/path/to/log/directory")
 }
 }
+\concept{setup}

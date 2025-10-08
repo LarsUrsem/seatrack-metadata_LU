@@ -10,6 +10,7 @@
 #' set_sea_track_folder("/path/to/sea/track/folder")
 #' }
 #' @export
+#' @concept setup
 set_sea_track_folder <- function(dir) {
     if (!dir.exists(dir)) {
         stop("The specified directory does not exist.")
@@ -32,6 +33,7 @@ set_sea_track_folder <- function(dir) {
 #' start_logging("/path/to/log/directory")
 #' }
 #' @export
+#' @concept setup
 start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_log_", Sys.Date(), ".txt")) {
     if (!is.null(log_dir)) {
         if (!dir.exists(log_dir)) {
@@ -56,6 +58,7 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 #' get_master_import_folder("ColonyA")
 #' }
 #' @export
+#' @concept metadata
 get_master_import_path <- function(colony) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
@@ -101,6 +104,7 @@ get_master_import_path <- function(colony) {
 #' all_xlsx_files <- get_startup_paths()
 #' }
 #' @export
+#' @concept startups
 get_startup_paths <- function() {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
@@ -136,6 +140,7 @@ get_startup_paths <- function() {
 #' sheets_data <- load_sheets_as_list("path/to/file.xlsx", c("Sheet1", "Sheet2"), skip = 1)
 #' }
 #' @export
+#' @concept utility
 load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, drop_unnamed = TRUE, col_types = rep(NULL, length(sheets))) {
     if (!file.exists(file_path)) {
         stop("The specified file does not exist.")
@@ -186,6 +191,7 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
 #' @param manufacturer String indicating name of the manufacturer. Either "Lotek" or "MigrateTech".
 #' @return A tibble containing the unresponsive logger data.
 #'
+#' @concept nonresponsive
 load_nonresponsive_sheet <- function(file_path, manufacturer = c("Lotek", "MigrateTech")) {
     manufacturer <- match.arg(manufacturer)
     loaded_sheet <- NULL
@@ -241,6 +247,7 @@ load_nonresponsive_sheet <- function(file_path, manufacturer = c("Lotek", "Migra
 #' nonresponsive_list <- load_nonresponsive(file_paths, manufacturers)
 #' }
 #' @export
+#' @concept nonresponsive
 load_nonresponsive <- function(file_paths, manufacturers) {
     if (length(file_paths) != length(manufacturers)) {
         stop("file_paths and manufacturers must be the same length.")
@@ -264,6 +271,8 @@ load_nonresponsive <- function(file_paths, manufacturers) {
 #' \dontrun{
 #' load_master_import("ColonyA")
 #' }
+#' @export
+#' @concept metadata
 load_master_import <- function(colony) {
     file_path <- get_master_import_path(colony)
 
@@ -315,6 +324,7 @@ load_master_import <- function(colony) {
 #' load_partner_metadata("path/to/partner_metadata.xlsx")
 #' }
 #' @export
+#' @concept metadata
 load_partner_metadata <- function(file_path) {
     if (!file.exists(file_path)) {
         stop("The specified file does not exist.")
@@ -341,6 +351,7 @@ load_partner_metadata <- function(file_path) {
 #' updated_master_metadata <- append_encounter_data(master_metadata, encounter_data)
 #' }
 #' @export
+#' @concept encounters
 append_encounter_data <- function(master_metadata, encounter_data) {
     if (nrow(encounter_data) == 0) {
         log_info("No encounter data to append.")
@@ -401,6 +412,7 @@ append_encounter_data <- function(master_metadata, encounter_data) {
 #' updated_master_startup <- add_loggers_from_startup_sheets(master_startup)
 #' }
 #' @export
+#' @concept startups
 add_loggers_from_startup <- function(master_startup) {
     locations <- unique(master_startup$intended_location)
 
@@ -515,6 +527,7 @@ add_loggers_from_startup <- function(master_startup) {
 #' unfinished_session <- get_unfinished_session(master_startup, "Logger123", as.Date("2023-01-15"))
 #' }
 #' @export
+#' @concept startups
 get_unfinished_session <- function(master_startup, logger_id, logger_download_stop_date) {
     # Find session in master_startup
     # Get logger ID unfinished sessions
@@ -586,6 +599,7 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
 #' print(colonies)
 #' }
 #' @export
+#' @concept setup
 get_all_locations <- function() {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
@@ -621,6 +635,7 @@ get_all_locations <- function() {
 #' set_master_startup_value(master_startup, 2, "download_type", "Succesfully downloaded")
 #' }
 #' @export
+#' @concept startups
 set_master_startup_value <- function(master_startup, index, column, value) {
     master_startup[index, column] <- value
     log_trace(paste0("Set value in master_startup: row ", index, ", column '", column, "' to '", value, "'"))
@@ -646,6 +661,7 @@ set_master_startup_value <- function(master_startup, index, column, value) {
 #' set_comments(master_startup, 2, "Another logger comment")
 #' }
 #' @export
+#' @concept startups
 set_comments <- function(master_startup, index, logger_comments) {
     if (!is.na(logger_comments) && logger_comments != "") {
         # If there is a comment:
@@ -679,6 +695,7 @@ set_comments <- function(master_startup, index, logger_comments) {
 #' updated_master_startup <- handle_returned_loggers(master_startup, logger_returns, restart_times)
 #' }
 #' @export
+#' @concept metadata
 handle_returned_loggers <- function(colony, master_startup, logger_returns, restart_times, nonresponsive_list = list()) {
     if (nrow(logger_returns) == 0) {
         log_info("No logger returns to process.")
@@ -842,6 +859,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 #'
 #' @return An updated version of the master import file, as a list where each element is a sheet from the excel file.
 #' @export
+#' @concept metadata
 handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = list()) {
     if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
@@ -886,6 +904,7 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
 #' }
 #'
 #' @export
+#' @concept metadata
 save_master_sheet <- function(new_master_sheets, filepath) {
     openxlsx2::write_xlsx(new_master_sheets, filepath, first_row = TRUE, first_col = TRUE, widths = "auto", na.strings = "")
 }
@@ -903,6 +922,7 @@ save_master_sheet <- function(new_master_sheets, filepath) {
 #' save_multiple_nonresponsive(nonresponsive_list, file_paths)
 #' }
 #' @export
+#' @concept nonresponsive
 save_nonresponsive <- function(file_paths, nonresponsive_list) {
     if (length(nonresponsive_list) != length(file_paths)) {
         stop("nonresponsive_list and file_paths must be the same length.")

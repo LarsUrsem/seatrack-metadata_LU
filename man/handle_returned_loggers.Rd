@@ -39,3 +39,4 @@ This function processes logger return information and updates the master import 
 updated_master_startup <- handle_returned_loggers(master_startup, logger_returns, restart_times)
 }
 }
+\concept{metadata}

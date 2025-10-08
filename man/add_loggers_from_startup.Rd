@@ -22,3 +22,4 @@ Incorrectly formatted datetime columns can also lead to issues.
 updated_master_startup <- add_loggers_from_startup_sheets(master_startup)
 }
 }
+\concept{startups}

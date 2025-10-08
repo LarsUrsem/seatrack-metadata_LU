@@ -15,6 +15,7 @@
 #' @export
 #' @importFrom openxlsx2 wb_workbook wb_set_col_widths wb_set_row_heights int2col
 #' @importFrom flexlsx wb_add_flextable
+#' @concept appendix_table
 export_appendix_table_excel <- function(ft, file_path, sheet_name = "table", body_cell_width = 4.5, species_height = 100, lme_width = 4) {
     wb <- openxlsx2::wb_workbook()$add_worksheet(sheet_name)
     wb <- flexlsx::wb_add_flextable(wb, sheet_name, ft)
@@ -47,6 +48,7 @@ export_appendix_table_excel <- function(ft, file_path, sheet_name = "table", bod
 #' create_appendix_table(field_plan_clean, "GLS", "A", target_species)
 #' }
 #' @export
+#' @concept appendix_table
 create_appendix_table <- function(field_plan_clean, logger_type, age_target, target_species) {
     # Should move this to a data file at some point
     # Define species groups and their colours
@@ -313,6 +315,7 @@ create_appendix_table <- function(field_plan_clean, logger_type, age_target, tar
 #' get_field_plan("path/to/fieldplan.xlsx")
 #' }
 #' @export
+#' @concept field_planning
 get_field_plan <- function(field_plan_path) {
     field_plan_sheet <- read_excel(field_plan_path, sheet = "Main", na = c("", "?"))
     field_plan_sheet <- field_plan_sheet[!is.na(field_plan_sheet$Colony) & !is.na(field_plan_sheet$`Ocean area`), ]
@@ -343,6 +346,7 @@ get_field_plan <- function(field_plan_path) {
 #' field_plan_combine_locations(field_plan_sheet)
 #' }
 #' @export
+#' @concept field_planning
 field_plan_combine_locations <- function(field_plan_sheet) {
     # Aggregate locations with the same colony name, species and age together (sum all numeric variables)
     colony_species <- group_by(field_plan_sheet, Colony, Species, Age)
@@ -373,6 +377,7 @@ field_plan_combine_locations <- function(field_plan_sheet) {
 #' field_plan_check_locations(field_plan_sheet, new_locations)
 #' }
 #' @export
+#' @concept field_planning
 field_plan_check_locations <- function(field_plan_sheet, new_locations = NULL) {
     # Check if there is a seatrack DB data connection
     seatrackR:::checkCon()
@@ -461,6 +466,7 @@ get_logger_info <- function(species, projects, retrieval_years, deployment_years
 #' field_plan_clean <- get_clean_field_plan(field_plan_sheet)
 #' }
 #' @export
+#' @concept field_planning
 get_clean_field_plan <- function(field_plan_sheet) {
     field_plan_clean <- field_plan_sheet[, c(
         "Ocean area", "Colony", "Species",
@@ -543,7 +549,7 @@ get_clean_field_plan <- function(field_plan_sheet) {
 #'
 #' This function retrieves historical deployment and retrieval data from the SEATRACK database for a specified year and event type (Deployment or Retrieval).
 #' It filters the data based on the event type, age class, and logger type, and returns a data frame with relevant information.
-#' A connection to the SEATRACK database is required.
+#' A connection to the SEATRACK database is required. This should probably be moved to seatrackRdb at some point.
 #' @param history_year The year for which to retrieve historical data (e.g., 2023)
 #' @param event_type A vector specifying the event type(s) to filter by (defaults to c("Deployment", "Retrieval"))
 #' @return A data frame containing historical deployment and retrieval data
@@ -552,7 +558,7 @@ get_clean_field_plan <- function(field_plan_sheet) {
 #' seatrackR::connectSeatrack()
 #' history_data <- get_history_table(2023, c("Deployment", "Retrieval"))
 #' }
-#' @export
+#' @keywords internal
 get_history_table <- function(history_year, event_type = c("Deployment", "Retrieval")) {
     seatrackR:::checkCon()
 

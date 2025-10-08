@@ -32,3 +32,4 @@ It includes background coloring based on success rates and organizes species int
 create_appendix_table(field_plan_clean, "GLS", "A", target_species)
 }
 }
+\concept{appendix_table}

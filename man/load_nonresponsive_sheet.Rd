@@ -19,3 +19,4 @@ A tibble containing the unresponsive logger data.
 Load nonresponsive logger sheet for current year
 This function loads the record of unresponsive loggers. If the filepath provided does not exist, it initialises new sheets.
 }
+\concept{nonresponsive}

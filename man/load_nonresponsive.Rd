@@ -24,3 +24,4 @@ manufacturers <- c("Lotek", "MigrateTech")
 nonresponsive_list <- load_nonresponsive(file_paths, manufacturers)
 }
 }
+\concept{nonresponsive}

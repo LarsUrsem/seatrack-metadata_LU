@@ -20,3 +20,4 @@ This function sets a global variable used by other functions.
 set_sea_track_folder("/path/to/sea/track/folder")
 }
 }
+\concept{setup}

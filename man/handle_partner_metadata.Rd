@@ -29,3 +29,4 @@ It firstly adds missing sessions by checking start up files.
 It then appends the reported encounter data, avoiding duplicate rows.
 Finally it updates sessions based on reported logger returns. This includes generating new sessions for loggers restarted in the field.
 }
+\concept{metadata}

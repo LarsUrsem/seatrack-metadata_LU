@@ -23,3 +23,4 @@ seatrackR::connectSeatrack()
 field_plan_clean <- get_clean_field_plan(field_plan_sheet)
 }
 }
+\concept{field_planning}

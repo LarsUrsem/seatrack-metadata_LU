@@ -21,3 +21,4 @@ converts certain columns to numeric, removes bracketed text from colony names, a
 get_field_plan("path/to/fieldplan.xlsx")
 }
 }
+\concept{field_planning}

@@ -24,3 +24,4 @@ colonies <- get_all_locations()
 print(colonies)
 }
 }
+\concept{setup}

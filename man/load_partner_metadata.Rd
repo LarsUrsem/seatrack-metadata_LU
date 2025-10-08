@@ -21,3 +21,4 @@ It iterates through the appropriate sheets and combines the data into a list of 
 load_partner_metadata("path/to/partner_metadata.xlsx")
 }
 }
+\concept{metadata}

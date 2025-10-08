@@ -26,3 +26,4 @@ new_locations <- data.frame(colony = c("Nord-Troms", "\u00C5gotnes"), lat = c(70
 field_plan_check_locations(field_plan_sheet, new_locations)
 }
 }
+\concept{field_planning}

@@ -22,3 +22,4 @@ Append encounter data to the master import metadata
 updated_master_metadata <- append_encounter_data(master_metadata, encounter_data)
 }
 }
+\concept{encounters}

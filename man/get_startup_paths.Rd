@@ -17,3 +17,4 @@ This function retrieves paths to all Excel files in the "Starttime files and sto
 all_xlsx_files <- get_startup_paths()
 }
 }
+\concept{startups}

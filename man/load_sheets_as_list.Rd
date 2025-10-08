@@ -38,3 +38,4 @@ It provides options to skip rows, force date columns to be of Date type, and dro
 sheets_data <- load_sheets_as_list("path/to/file.xlsx", c("Sheet1", "Sheet2"), skip = 1)
 }
 }
+\concept{utility}

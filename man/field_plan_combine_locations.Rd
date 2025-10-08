@@ -20,3 +20,4 @@ This function aggregates locations with the same colony name, species and age to
 field_plan_combine_locations(field_plan_sheet)
 }
 }
+\concept{field_planning}

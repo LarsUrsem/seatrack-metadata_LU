@@ -26,3 +26,4 @@ This function updates the value of a specified cell in the \code{master_startup}
 set_master_startup_value(master_startup, 2, "download_type", "Succesfully downloaded")
 }
 }
+\concept{startups}

@@ -26,3 +26,4 @@ This function finds the unfinished session for a given logger in the master star
 unfinished_session <- get_unfinished_session(master_startup, "Logger123", as.Date("2023-01-15"))
 }
 }
+\concept{startups}
