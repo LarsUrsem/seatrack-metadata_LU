@@ -222,6 +222,7 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
 }
 
 #' Load nonresponsive logger sheet for current year
+#'
 #' This function loads the record of unresponsive loggers. If the filepath provided does not exist, it initialises new sheets.
 #' @param file_path String indicating from where the file should be loaded from.
 #' @param manufacturer String indicating name of the manufacturer. Either "Lotek" or "MigrateTech".
@@ -687,6 +688,7 @@ add_loggers_from_startup <- function(master_startup) {
 
 
 #' Find a logger's unfinished session in the master startup data frame
+#'
 #' This function finds the unfinished session for a given logger in the master startup data frame.
 #'
 #' @param master_startup A data frame containing the master startup and shutdown information.
@@ -767,17 +769,18 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
 #' @param comment Optional comment to append to the existing comment string.
 #' @param master_sheet master sheet in which the logger will be found. If not provided, all sheets will be checked.
 #' @param all_master_sheet If master_sheet is not provided, all sheets will be checked. To save these being loaded every time, they can be provided using `load_all_master_import(combine = FALSE)`
+#' @param nonresponsive_list A named list of tibbles, each containing nonresponsive logger data for different manufacturers.
 #'
-#' @return modified version of master_sheet
+#' @return list containing modified version of master_sheet, modified version of nonresponsive_list
 #' @export
 #' @concept loggers
-end_logger_session <- function(logger_id, logger_status, downloaded_by = "", download_date = NULL, comment = "", master_sheet = NULL, all_master_sheet = NULL) {
+end_logger_session <- function(logger_id, logger_status, downloaded_by = "", download_date = NULL, comment = "", master_sheet = NULL, all_master_sheet = NULL, nonresponsive_list = list()) {
     if (is.null(download_date)) {
         download_date <- as.Date(Sys.time())
     }
     new_data <- list(download_type = logger_status, downloaded_by = downloaded_by, download_date = download_date, shutdown_date = shutdown_date, comment = comment)
-    new_master_sheet <- modify_logger_status(logger_id, new_data, master_sheet, all_master_sheet)
-    return(new_master_sheet)
+    result_list <- modify_logger_status(logger_id, new_data, master_sheet, all_master_sheet, nonresponsive_list)
+    return(result_list)
 }
 
 #' Modify logger status
@@ -788,11 +791,12 @@ end_logger_session <- function(logger_id, logger_status, downloaded_by = "", dow
 #' @param new_data named list of new data to be inserted, where the name of each element corresponds to a column in the sheet.
 #' @param master_sheet master sheet in which the logger will be found. If not provided, all sheets will be checked.
 #' @param all_master_sheet If master_sheet is not provided, all sheets will be checked. To save these being loaded every time, they can be provided using `load_all_master_import(combine = FALSE)`
+#' @param nonresponsive_list A named list of tibbles, each containing nonresponsive logger data for different manufacturers.
 #'
-#' @return modified version of master_sheet
+#' @return list containing modified version of master_sheet, modified version of nonresponsive_list
 #' @export
 #' @concept loggers
-modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NULL, all_master_sheet = NULL) {
+modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NULL, all_master_sheet = NULL, nonresponsive_list = list()) {
     if (is.null(master_sheet)) {
         if (is.null(all_master_sheet)) {
             all_master_sheet <- load_all_master_import(combine = FALSE)
@@ -823,7 +827,35 @@ modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NU
         )
     }
 
-    return(master_sheet)
+    if ("download_type" %in% names(new_data) && new_data$download_type == "Nonresponsive") {
+        nonresponsive_for_manufacturer <- master_sheet$data$STARTUP_SHUTDOWN[unfinished_session$index, ]
+        manufacturer <- lower(nonresponsive_for_manufacturer$manufacturer)
+
+        new_nonresponsive <- tibble(
+            logger_serial_no = nonresponsive_for_manufacturer$logger_serial_no,
+            logger_model = nonresponsive_for_manufacturer$logger_model,
+            producer = nonresponsive_for_manufacturer$producer,
+            production_year = nonresponsive_for_manufacturer$production_year,
+            project = nonresponsive_for_manufacturer$project,
+            starttime_gmt = nonresponsive_for_manufacturer$starttime_gmt,
+            download_type = "Nonresponsive",
+            download_date = nonresponsive_for_manufacturer$download_date,
+            comment = nonresponsive_for_manufacturer$comment
+        )
+
+        if (manufacturer == "migratetech") {
+            new_nonresponsive$logging_mode <- nonresponsive_for_manufacturer$logging_mode
+            new_nonresponsive$days_delayed <- nonresponsive_for_manufacturer$days_delayed
+            new_nonresponsive$programmed_gmt_time <- nonresponsive_for_manufacturer$programmed_gmt_time
+            new_nonresponsive$priority <- NA
+            # reorder columns
+            new_nonresponsive <- new_nonresponsive[, names(nonresponsive_list[[manufacturer]])]
+        }
+
+        nonresponsive_list[[manufacturer]] <- rbind(nonresponsive_list[[manufacturer]], new_nonresponsive)
+    }
+
+    return(list(master_sheet = master_sheet, nonresponsive_list = nonresponsive_list))
 }
 
 #' Get All Locations
@@ -937,7 +969,7 @@ set_comments <- function(master_startup, index, logger_comments) {
 #' updated_master_startup <- handle_returned_loggers(master_startup, logger_returns, restart_times)
 #' }
 #' @export
-#' @concept metadata
+#' @concept loggers
 handle_returned_loggers <- function(colony, master_startup, logger_returns, restart_times, nonresponsive_list = list()) {
     if (nrow(logger_returns) == 0) {
         log_info("No logger returns to process.")

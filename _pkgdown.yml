@@ -11,7 +11,11 @@ reference:
   - subtitle: General metadata functions
     contents:
       - has_concept("metadata")
-  - subtitle: Nonresponsive metadata functions
+  - subtitle: Logger metadata functions
+    desc: Functions to load logger data
+    contents:
+      - has_concept("loggers")
+  - subtitle: Nonresponsive logger metadata functions
     desc: Functions to load and update non-responsive sheets
     contents: 
       - has_concept("nonresponsive")
@@ -23,10 +27,6 @@ reference:
     desc: Functions to load and update encounter data
     contents:
       - has_concept("encounters")
-  - subtitle: Logger metadata functions
-    desc: Functions to load logger data
-    contents:
-      - has_concept("loggers")
   - title: Field planning sheet functions
     desc: Functions to load and handle data from the field planning sheet
     contents:
