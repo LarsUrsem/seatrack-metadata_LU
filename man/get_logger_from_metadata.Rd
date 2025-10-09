@@ -17,3 +17,4 @@ list of all matches, where each element of the list is a list containing the row
 \description{
 This function tries to find a logger ID in all master import files. You can either provide an already loaded list of master import sheets, or the function will load them itself.
 }
+\concept{loggers}

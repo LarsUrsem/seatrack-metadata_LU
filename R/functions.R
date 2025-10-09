@@ -303,6 +303,7 @@ load_nonresponsive <- function(file_paths, manufacturers) {
 #' @param all_master_import_list list of master import sheets, as returned by `load_all_master_import(combine = FALSE)`. If not provided, this will be generated inside the function
 #'
 #' @return list of all matches, where each element of the list is a list containing the row of data, the file path and the index.
+#' @concept loggers
 get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
     if (is.null(all_master_import_list)) {
         all_master_import_list <- load_all_master_import(combine = FALSE)
@@ -698,7 +699,7 @@ add_loggers_from_startup <- function(master_startup) {
 #' unfinished_session <- get_unfinished_session(master_startup, "Logger123", as.Date("2023-01-15"))
 #' }
 #' @export
-#' @concept startups
+#' @concept startups loggers
 get_unfinished_session <- function(master_startup, logger_id, logger_download_stop_date) {
     # Find session in master_startup
     # Get logger ID unfinished sessions
