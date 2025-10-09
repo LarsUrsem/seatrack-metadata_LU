@@ -72,21 +72,51 @@ get_master_import_path <- function(colony) {
     # Split the filenames to get colony names
     colony_names <- sapply(strsplit(files, "_"), `[`, 2)
 
-    # Check if the specified colony exists
-    if (!(colony %in% colony_names)) {
+    # Try a straight match
+    colony_bool <- colony == colony_names
+
+    if (!any(colony_bool)) {
+        # Try a within string match
+        colony_bool <- grepl(colony, colony_names)
+    }
+
+    if (!any(colony_bool)) {
         # stop(paste("Colony", colony, "not found in the master import folder. Available colonies are:", paste(colony_names, collapse = ", ")))
+        # Try the country of the colony
         all_country_colonies <- get_all_locations()
         colony_bool <- sapply(all_country_colonies, function(country_colonies) {
             return(colony %in% country_colonies)
         })
         country <- names(colony_bool)[colony_bool]
-        colony_file_name <- files[colony_names == country]
+        country_file_bool <- colony_names == country
+        if (any(country_file_bool)) {
+            colony_file_name <- files[country_file_bool]
+        } else {
+            # Final fallback, open the file and check
+            log_info("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
+            colony_file_name <- character()
+            for (import_file in files) {
+                import_file_path <- file.path(master_import_folder, import_file)
+                master_import_list <- load_master_import(file_path = import_file_path)
+                master_import_startup <- master_import_list$data$STARTUP_SHUTDOWN
+                location_bool <- grepl(colony, master_import_startup$intended_location)
+
+                if (any(location_bool)){
+                    colony_file_name <- import_file
+                    break
+                }
+            }
+        }
     } else {
-        colony_file_name <- files[colony_names == colony]
+        colony_file_name <- files[colony_bool]
+    }
+
+    if (length(colony_file_name) == 0) {
+        log_warn("Master import file for colony '", colony, "' not found")
+        return(NULL)
     }
 
     full_colony_file_path <- file.path(master_import_folder, colony_file_name)
-
     log_success("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
 
     return(full_colony_file_path)
@@ -151,7 +181,13 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
         sheet <- sheets[sheet_index]
         sheet_col_types <- col_types[[sheet_index]]
         log_trace("Loading sheet: ", sheet)
-        current_sheet <- read_excel(file_path, sheet = sheet, skip = skip, na = c("", "End", "end"), col_types = sheet_col_types)
+        if (!is.null(sheet_col_types)) {
+            range <- cellranger::cell_cols(1:length(sheet_col_types))
+        } else {
+            range <- NULL
+        }
+
+        current_sheet <- read_excel(file_path, sheet = sheet, skip = skip, na = c("", "End", "end"), col_types = sheet_col_types, range = range, .name_repair = "unique_quiet")
         # remove empty rows
         current_sheet <- current_sheet[rowSums(is.na(current_sheet)) != ncol(current_sheet), ]
         if (force_date) {
@@ -259,11 +295,140 @@ load_nonresponsive <- function(file_paths, manufacturers) {
     return(sheets_list)
 }
 
+#' Find logger instances in files
+#'
+#' This function tries to find a logger ID in all master import files. You can either provide an already loaded list of master import sheets, or the function will load them itself.
+#'
+#' @param logger_id logger ID of desired logger
+#' @param all_master_import_list list of master import sheets, as returned by `load_all_master_import(combine = FALSE)`. If not provided, this will be generated inside the function
+#'
+#' @return list of all matches, where each element of the list is a list containing the row of data, the file path and the index.
+get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
+    if (is.null(all_master_import_list)) {
+        all_master_import_list <- load_all_master_import(combine = FALSE)
+    }
+    search_result <- lapply(seq_along(all_master_import_list), function(i) {
+        import_sheet <- all_master_import_list[[i]]
+        logger_idx <- which(import_sheet$data$STARTUP_SHUTDOWN$logger_serial_no == logger_id)
+        if (length(logger_idx) > 0) {
+            data_list <- lapply(logger_idx, function(logger_idx_i) {
+                import_sheet$data$STARTUP_SHUTDOWN[logger_idx_i, ]
+            })
+            data_rows <- do.call(rbind, data_list)
+            return(list(path = import_sheet$path, data = data_rows, list_index = i, row_index = logger_idx))
+        }
+    })
+    search_result_nonull <- search_result[[which(!sapply(search_result, is.null))]]
+    return(search_result_nonull)
+}
+
+#' Load master import file for all colonies
+#'
+#' This function attempts to load all master import sheets available in the seatrack folder.
+#' @param combine Boolean determining whether or not to combine the sheets into a single dataframe.
+#' @return If combine is TRUE: A list consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
+#'  Otherwise a list where every element is a sheet
+#' @export
+#' @concept metadata
+load_all_master_import <- function(combine = TRUE) {
+    if (is.null(the$sea_track_folder)) {
+        stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
+    }
+    all_colony <- unlist(get_all_locations())
+
+    all_paths <- lapply(all_colony, get_master_import_path)
+
+    no_path <- all_colony[which(sapply(all_paths, is.null))]
+    if (length(no_path) > 0) {
+        missing_import_files <- data.frame(country = names(no_path), colony = no_path)
+        missing_import_files$country <- gsub("\\d+$", "", missing_import_files$country)
+        row.names(missing_import_files) <- NULL
+        log_warn("Import files for the following locations could not be found: \n", paste(capture.output(print(missing_import_files)), collapse = "\n"))
+    }
+
+
+    null_path_idx <- which(!sapply(all_paths, is.null))
+
+    all_paths <- all_paths[null_path_idx]
+    all_colony <- all_colony[null_path_idx]
+
+    distinct_idx <- which(!duplicated(all_paths))
+    all_colony <- all_colony[distinct_idx]
+    all_paths <- all_paths[distinct_idx]
+
+    all_sheets <- lapply(all_colony, load_master_import)
+
+    names(all_sheets) <- all_colony
+
+    if (!combine) {
+        # If not combining, return the lists
+        return(all_sheets)
+    }
+
+    all_data <- lapply(all_sheets, function(x) x$data)
+    # combine metadata
+    all_metadata <- lapply(all_data, function(x) x$METADATA)
+
+    # If the master_metadata sheet is is lacking the nest_latitude and nest_longitude columns, add them
+    all_metadata <- lapply(all_metadata, function(x) {
+        if (!"nest_latitude" %in% colnames(x)) {
+            x$nest_latitude <- NA
+        }
+        if (!"nest_longitude" %in% colnames(x)) {
+            x$nest_longitude <- NA
+        }
+        return(x)
+    })
+
+    all_metadata_names <- unique(unlist(sapply(all_metadata, names)))
+
+    # which columns are in all
+    names_present_bools <- lapply(all_metadata, function(x) all_metadata_names %in% names(x))
+    names_present_bools <- do.call(rbind, names_present_bools)
+    in_all_bool <- colSums(names_present_bools) == nrow(names_present_bools)
+    in_all_names <- all_metadata_names[in_all_bool]
+    not_in_all_names <- all_metadata_names[!in_all_bool]
+
+    for (i in seq_along(all_metadata)) {
+        metadata <- all_metadata[[i]]
+        bad_names_bool <- not_in_all_names %in% names(metadata)
+        if (any(bad_names_bool)) {
+            bad_names <- not_in_all_names[bad_names_bool]
+            path <- all_paths[[i]]
+            log_warn(path, " had the following non-standard columns: ", paste0(bad_names, collapse = ", "))
+        }
+    }
+
+    all_metadata_clean <- lapply(all_metadata, function(x) x[, in_all_names])
+    all_metadata_clean <- lapply(seq_along(all_metadata_clean), function(i) {
+        metadata <- all_metadata_clean[[i]]
+        metadata$path <- all_paths[[i]]
+        return(metadata)
+    })
+
+    all_metadata_clean <- do.call(rbind, all_metadata_clean)
+    # combine startups
+    all_startup <- lapply(all_data, function(x) x$`STARTUP_SHUTDOWN`)
+
+    all_startup <- lapply(seq_along(all_startup), function(i) {
+        startup <- all_startup[[i]]
+        startup$path <- all_paths[[i]]
+        return(startup)
+    })
+
+
+    all_startup <- do.call(rbind, all_startup)
+
+    return(list(METADATA = all_metadata_clean, STARTUP_SHUTDOWN = all_startup))
+}
+
 #' Load master import file for a given colony
 #'
-#' This function loads the master import file for a specified colony.
+#' This function loads the master import file for a specified colony or directly from a file path.
+#' Either a colony name of a file path must be provided.
 #' It iterates through the appropriate sheets and combines the data into a list of data frames.
 #' @param colony A character string specifying the name of the colony.
+#' @param file_path File path of master import file
 #' @return A list consisting of two items.
 #'  data: A list of tibbles, each corresponding to a sheet in the master import file.
 #'  path: The file path of the loaded master import file.
@@ -273,8 +438,14 @@ load_nonresponsive <- function(file_paths, manufacturers) {
 #' }
 #' @export
 #' @concept metadata
-load_master_import <- function(colony) {
-    file_path <- get_master_import_path(colony)
+load_master_import <- function(colony = NULL, file_path = NULL) {
+    if (!is.null(colony) && is.null(file_path)) {
+        file_path <- get_master_import_path(colony)
+    }
+
+    if (is.null(file_path)) {
+        stop("Unable to find master import sheet for this colony.")
+    }
 
     if (!file.exists(file_path)) {
         stop("The specified master import file does not exist.")
@@ -309,7 +480,7 @@ load_master_import <- function(colony) {
 
     import_list <- load_sheets_as_list(file_path, sheets, col_types = list(NULL, startup_col_types))
 
-    return(data = import_list, path = file_path)
+    return(list(data = import_list, path = file_path))
 }
 
 

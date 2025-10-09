@@ -20,7 +20,8 @@ Imports:
     DBI,
     seatrackR,
     tidyr,
-    flextable
+    flextable,
+    cellranger
 Suggests: 
     knitr,
     rmarkdown,

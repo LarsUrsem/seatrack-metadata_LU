@@ -4,10 +4,12 @@
 \alias{load_master_import}
 \title{Load master import file for a given colony}
 \usage{
-load_master_import(colony)
+load_master_import(colony = NULL, file_path = NULL)
 }
 \arguments{
 \item{colony}{A character string specifying the name of the colony.}
+
+\item{file_path}{File path of master import file}
 }
 \value{
 A list consisting of two items.
@@ -15,7 +17,8 @@ data: A list of tibbles, each corresponding to a sheet in the master import file
 path: The file path of the loaded master import file.
 }
 \description{
-This function loads the master import file for a specified colony.
+This function loads the master import file for a specified colony or directly from a file path.
+Either a colony name of a file path must be provided.
 It iterates through the appropriate sheets and combines the data into a list of data frames.
 }
 \examples{
