@@ -173,7 +173,7 @@ head(master_import$data$METADATA)
 Optionally, you can also load or initialise some sheets of nonresponsive loggers. This function takes a vector of file paths and a vector of manufacturers.
 
 ```{r loadunresponsive}
-nonresponsive_list <- load_nonresponsive(c("lotek_sheet.xlsx", "migrate_sheet.xlsx"), c("Lotek", "MigrateTech"))
+nonresponsive_list <- load_nonresponsive(c("lotek_sheet.xlsx", "migrate_sheet.xlsx"), c("Lotek", "Migrate Technology"))
 ```
 
 
