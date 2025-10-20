@@ -72,7 +72,6 @@ create_test_master_import <- function() {
 }
 
 describe("File System Operations", {
-
   test_that("start_logging creates log file", {
     log_file <- paste0("seatrack_functions_log_", Sys.Date(), ".txt")
     start_logging(tmp_dir, log_file)
@@ -99,7 +98,6 @@ describe("File System Operations", {
     file.remove(test_file)
   })
 
-
   test_that("load_sheets_as_list loads sheets", {
     test_file <- file.path(tmp_dir, "test.xlsx")
     wb <- openxlsx2::wb_workbook()
@@ -114,18 +112,34 @@ describe("File System Operations", {
     file.remove(test_file)
   })
 
-  test_that("save_master_sheet writes xlsx file", {
-    df <- data.frame(a = 1:3, b = 4:6)
+  test_that("save_master_sheet writes xlsx file with LoadedWB", {
+    # Create test data list
+    data_list <- list(
+      "Sheet1" = tibble(a = 1:3, b = 4:6),
+      "Sheet2" = tibble(x = 7:9, y = 10:12)
+    )
+    # Create LoadedWB instance
+    wb <- openxlsx2::wb_workbook()
+    wb$add_worksheet("Sheet1")
+    wb$add_worksheet("Sheet2")
+
+    loaded_wb <- LoadedWB$new(data = data_list, wb = wb)
+    
     out_file <- file.path(tmp_dir, "out.xlsx")
-    expect_silent(save_master_sheet(df, out_file))
+    save_master_sheet(loaded_wb, out_file)
     expect_true(file.exists(out_file))
+    
+    # Verify the saved file contains the correct data
+    result <- load_sheets_as_list(out_file, c("Sheet1", "Sheet2"))
+    expect_equal(result$data$Sheet1, data_list$Sheet1)
+    expect_equal(result$data$Sheet2, data_list$Sheet2)
+    
     file.remove(out_file)
   })
 })
 
 
 describe("Data Manipulation Operations", {
-
   test_that("append_encounter_data appends non-duplicate rows", {
     master <- data.frame(
       ring_number = NA,
@@ -203,7 +217,6 @@ describe("Data Manipulation Operations", {
 })
 
 describe("Logger Session Management", {
-
   colony <- "TestColony"
   master_startup <- create_test_startup_sheet()
   logger_returns <- create_test_logger_returns()
@@ -360,8 +373,6 @@ describe("Logger Session Management", {
 })
 
 describe("Colony Location Operations", {
-
-
   test_that("get_all_locations fails if sea track folder is not set", {
     the$sea_track_folder <<- NULL
     expect_error(get_all_locations(), "Sea track folder is not set")
@@ -392,8 +403,6 @@ describe("Colony Location Operations", {
 })
 
 describe("Partner Metadata Processing", {
-
-
   test_that("load_partner_metadata fails on nonexistent file", {
     expect_error(load_partner_metadata("nonexistent.xlsx"), "does not exist")
   })
@@ -452,7 +461,7 @@ describe("Partner Metadata Processing", {
 
 
   test_that("handle_partner_metadata errors if master_import missing required sheets", {
-    master_import <- list(
+    master_import_data <- list(
       METADATA = tibble(
         ring_number = NA,
         logger_id_deployed = "A",
@@ -463,16 +472,18 @@ describe("Partner Metadata Processing", {
       )
       # Missing STARTUP_SHUTDOWN
     )
-    new_metadata <- list(
+    new_metadata_data <- list(
       `ENCOUNTER DATA` = tibble(),
       `LOGGER RETURNS` = tibble(),
       `RESTART TIMES` = tibble()
     )
+      new_metadata <- LoadedWB$new(data = new_metadata_data, wb = openxlsx2::wb_workbook())
+    master_import <- LoadedWB$new(data = master_import_data, wb = openxlsx2::wb_workbook())
     expect_error(handle_partner_metadata("TestColony", new_metadata, master_import))
   })
 
   test_that("handle_partner_metadata handles empty new_metadata", {
-    master_import <- list(
+    master_import_data <- list(
       METADATA = tibble(
         ring_number = NA,
         logger_id_deployed = "A",
@@ -487,20 +498,22 @@ describe("Partner Metadata Processing", {
         intended_location = "Loc1"
       )
     )
-    new_metadata <- list(
+    new_metadata_data <- list(
       `ENCOUNTER DATA` = tibble(),
       `LOGGER RETURNS` = tibble(),
       `RESTART TIMES` = tibble()
     )
+    new_metadata <- LoadedWB$new(data = new_metadata_data, wb = openxlsx2::wb_workbook())
+    master_import <- LoadedWB$new(data = master_import_data, wb = openxlsx2::wb_workbook())
     result <- handle_partner_metadata("TestColony", new_metadata, master_import)
-    expect_true(is.list(result$master_import))
-    expect_true("METADATA" %in% names(result$master_import))
-    expect_true("STARTUP_SHUTDOWN" %in% names(result$master_import))
+    expect_true(is.list(result$master_import$data))
+    expect_true("METADATA" %in% names(result$master_import$data))
+    expect_true("STARTUP_SHUTDOWN" %in% names(result$master_import$data))
   })
 
   test_that("handle_partner_metadata processes new encounters and returns", {
     # Create master import with existing data
-    master_import <- list(
+    master_import_data <- list(
       METADATA = tibble(
         ring_number = c(NA, "R2"),
         logger_id_deployed = c("A", "B"),
@@ -536,7 +549,7 @@ describe("Partner Metadata Processing", {
     )
 
     # Create new metadata with both encounters and returns
-    new_metadata <- list(
+    new_metadata_data <- list(
       `ENCOUNTER DATA` = tibble(
         ring_number = c("R3", NA),
         logger_id_deployed = c("C", "A"),
@@ -563,56 +576,61 @@ describe("Partner Metadata Processing", {
       )
     )
 
+    new_metadata <- LoadedWB$new(data = new_metadata_data, wb = openxlsx2::wb_workbook())
+    master_import <- LoadedWB$new(data = master_import_data, wb = openxlsx2::wb_workbook())
+
     result <- handle_partner_metadata("TestColony", new_metadata, master_import)
 
     # Check metadata updates
-    expect_equal(nrow(result$master_import$METADATA), 4)
-    expect_true(any(result$master_import$METADATA$date == as.Date("2025-01-03")))
+    expect_equal(nrow(result$master_import$data$METADATA), 4)
+    expect_true(any(result$master_import$data$METADATA$date == as.Date("2025-01-03")))
 
     # Check startup/shutdown updates
-    startup_sheet <- result$master_import$`STARTUP_SHUTDOWN`
+    startup_sheet <- result$master_import$data$`STARTUP_SHUTDOWN`
     expect_true(any(!is.na(startup_sheet$download_date)))
     expect_equal(sum(startup_sheet$logger_serial_no == "A"), 2) # Original + restarted
     expect_true(any(grepl("Successfully retrieved", startup_sheet$comment)))
   })
 
   test_that("handle_partner_metadata handles nonresponsive loggers", {
-    master_import <- list(
+    master_import_data <- list(
       METADATA = tibble(
-      ring_number = NA,
-      logger_id_deployed = "A",
-      logger_id_retrieved = NA,
-      date = as.Date("2025-01-01"),
-      nest_latitude = NA,
-      nest_longitude = NA
+        ring_number = NA,
+        logger_id_deployed = "A",
+        logger_id_retrieved = NA,
+        date = as.Date("2025-01-01"),
+        nest_latitude = NA,
+        nest_longitude = NA
       ),
       `STARTUP_SHUTDOWN` = tibble(
-      logger_serial_no = "A",
-      logger_model = "Model1",
-      producer = "Lotek",
-      production_year = 2024,
-      project = "seatrack",
-      starttime_gmt = as.Date("2025-01-01"),
-      logging_mode = NA,
-      started_by = NA,
-      started_where = "TestColony",
-      days_delayed = NA,
-      programmed_gmt_time = NA,
-      intended_species = "bird",
-      intended_location = "TestColony",
-      intended_deployer = NA,
-      shutdown_session = NA,
-      field_status = NA,
-      downloaded_by = NA,
-      download_type = NA,
-      download_date = NA,
-      decomissioned = NA,
-      shutdown_date = NA,
-      comment = ""
+        logger_serial_no = "A",
+        logger_model = "Model1",
+        producer = "Lotek",
+        production_year = 2024,
+        project = "seatrack",
+        starttime_gmt = as.Date("2025-01-01"),
+        logging_mode = NA,
+        started_by = NA,
+        started_where = "TestColony",
+        days_delayed = NA,
+        programmed_gmt_time = NA,
+        intended_species = "bird",
+        intended_location = "TestColony",
+        intended_deployer = NA,
+        shutdown_session = NA,
+        field_status = NA,
+        downloaded_by = NA,
+        download_type = NA,
+        download_date = NA,
+        decomissioned = NA,
+        shutdown_date = NA,
+        comment = ""
       )
     )
 
-    new_metadata <- list(
+    master_import <- LoadedWB$new(data = master_import_data, wb = wb_workbook())
+
+    new_metadata_data <- list(
       `ENCOUNTER DATA` = tibble(),
       `LOGGER RETURNS` = tibble(
         logger_id = "A",
@@ -625,18 +643,20 @@ describe("Partner Metadata Processing", {
       `RESTART TIMES` = tibble()
     )
 
+    new_metadata <- LoadedWB$new(data = new_metadata_data, wb = wb_workbook())
+
     nonresponsive_sheet <- tibble(
-        logger_serial_no = character(),
-        logger_model = character(),
-        producer = character(),
-        production_year = numeric(),
-        project = character(),
-        starttime_gmt = as.POSIXct(character()),
-        download_type = character(),
-        download_date = as.Date(character()),
-        comment = character(),
-        intended_species = character(),
-        intended_location = character()
+      logger_serial_no = character(),
+      logger_model = character(),
+      producer = character(),
+      production_year = numeric(),
+      project = character(),
+      starttime_gmt = as.POSIXct(character()),
+      download_type = character(),
+      download_date = as.Date(character()),
+      comment = character(),
+      intended_species = character(),
+      intended_location = character()
     )
     nonresponsive_list <- LoadedWBCollection$new(sheets_list = list(lotek = LoadedWB$new(data = list(sheet1 = nonresponsive_sheet))))
 
@@ -648,7 +668,7 @@ describe("Partner Metadata Processing", {
     expect_equal(result$nonresponsive_list$sheets_list$lotek$data[[1]]$download_type[1], "Nonresponsive")
 
     # Check startup sheet updates
-    startup_sheet <- result$master_import$`STARTUP_SHUTDOWN`
+    startup_sheet <- result$master_import$data$`STARTUP_SHUTDOWN`
     expect_equal(startup_sheet$download_type[1], "Nonresponsive")
     expect_equal(startup_sheet$download_date[1], as.Date("2025-01-10"))
   })

@@ -203,7 +203,7 @@ updated_startup <- add_loggers_from_startup(master_import_data$`STARTUP_SHUTDOWN
 Then appending reported encounter data. 
 
 ```{r appendmetadata}
-updated_metadata <- append_encounter_data(master_import_data$METADATA, partner_data$`ENCOUNTER DATA`)
+updated_metadata <- append_encounter_data(master_import_data$METADATA, partner_data$data$`ENCOUNTER DATA`)
 ```
 
 Finally the processing reported logger returns and attempts to update the appropriate session in the master startup sheet, setting download status and dates. 
@@ -213,7 +213,7 @@ This function also handles loggers that the partner restearts, generating new se
 The function will also update the nonresponsive lists. 
 
 ```{r returns}
-updated_sessions <- handle_returned_loggers("TestColony", updated_startup, partner_data$`LOGGER RETURNS`, partner_data$`RESTART TIMES`, nonresponsive_list)
+updated_sessions <- handle_returned_loggers("TestColony", updated_startup, partner_data$data$`LOGGER RETURNS`, partner_data$data$`RESTART TIMES`, nonresponsive_list)
 ```
 
 At every stage, the log will report the changes that the functions have made to the master sheet. The log will also report when it is unable to handle some part of the partner supplied metadata. This can help identify areas that need manually fixing in either the partner metadata sheet or the master sheet.
@@ -223,7 +223,7 @@ At every stage, the log will report the changes that the functions have made to 
 This workflow can be run using a single function, `handle_partner_metadata` that takes the colony name and the imported excel files as arguments. 
 
 ```{r handlealldata}
-new_sheets <- handle_partner_metadata("TestColony", partner_data, master_import_data)
+new_sheets <- handle_partner_metadata("TestColony", partner_data, master_import)
 new_master_sheets <- new_sheets$master_import
 new_nonresponsive_list <- new_sheets$nonresponsive_list
 ```

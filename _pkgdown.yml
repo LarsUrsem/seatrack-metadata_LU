@@ -17,7 +17,7 @@ reference:
       - has_concept("loggers")
   - subtitle: Nonresponsive logger metadata functions
     desc: Functions to load and update non-responsive sheets
-    contents: 
+    contents:
       - has_concept("nonresponsive")
   - subtitle: Startup metadata functions
     desc: Functions to load and update startup sheets
@@ -39,3 +39,8 @@ reference:
   - title: General utility functions
     contents:
       - has_concept("utility")
+  - title: classes
+    contents:
+      - LoadedWBCollection
+      - WBCollection
+

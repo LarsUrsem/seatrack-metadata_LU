@@ -4,10 +4,10 @@
 \alias{save_master_sheet}
 \title{Save a master sheet to an Excel file.}
 \usage{
-save_master_sheet(new_master_sheets, filepath)
+save_master_sheet(new_master_sheets, filepath = NULL)
 }
 \arguments{
-\item{new_master_sheets}{A data frame containing the master sheet data to be saved.}
+\item{new_master_sheets}{A LoadedWB object.}
 
 \item{filepath}{A string specifying the path and name of the Excel file to be created.}
 }

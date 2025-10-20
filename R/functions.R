@@ -259,7 +259,7 @@ load_nonresponsive_sheet <- function(file_path) {
         wb <- openxlsx2::wb_load(file_path)
         loaded_sheet <- openxlsx2::read_xlsx(wb)
     } else {
-
+        wb <- openxlsx2::wb_workbook()
         loaded_sheet <- tibble(
             logger_serial_no = character(),
             logger_model = character(),
@@ -446,6 +446,7 @@ load_all_master_import <- function(combine = TRUE) {
 #' It iterates through the appropriate sheets and combines the data into a list of data frames.
 #' @param colony A character string specifying the name of the colony.
 #' @param file_path File path of master import file
+#' @param use_stored If TRUE, use a pre-existing path, rather than searching for a new one. Defaults to TRUE.
 #' @return A LoadedWB object.
 #' @examples
 #' \dontrun{
@@ -1241,27 +1242,33 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 #' @export
 #' @concept metadata
 handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = LoadedWBCollection$new()) {
-    if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata))) {
+    if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata$data))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
     }
-    if (!all(c("METADATA", "STARTUP_SHUTDOWN") %in% names(master_import))) {
+    if (!all(c("METADATA", "STARTUP_SHUTDOWN") %in% names(master_import$data))) {
         stop("master_import must contain the sheets: METADATA, STARTUP_SHUTDOWN")
     }
 
     log_info("Add missing sessions from start up files")
-    updated_loggers <- add_loggers_from_startup(master_import$`STARTUP_SHUTDOWN`)
+    updated_loggers <- add_loggers_from_startup(master_import$data$`STARTUP_SHUTDOWN`)
 
-    master_import$`STARTUP_SHUTDOWN` <- updated_loggers
+    master_import$data$`STARTUP_SHUTDOWN` <- updated_loggers
 
     log_info("Append encounter data")
-    updated_metadata <- append_encounter_data(master_import$METADATA, new_metadata$`ENCOUNTER DATA`)
+    updated_metadata <- append_encounter_data(master_import$data$METADATA, new_metadata$data$`ENCOUNTER DATA`)
 
-    master_import$METADATA <- updated_metadata
+    master_import$data$METADATA <- updated_metadata
 
     log_info("Update sessions from logger returns")
-    updated_sessions <- handle_returned_loggers(colony, master_import$`STARTUP_SHUTDOWN`, new_metadata$`LOGGER RETURNS`, new_metadata$`RESTART TIMES`, nonresponsive_list)
+    updated_sessions <- handle_returned_loggers(
+        colony,
+        master_import$data$`STARTUP_SHUTDOWN`,
+        new_metadata$data$`LOGGER RETURNS`,
+        new_metadata$data$`RESTART TIMES`,
+        nonresponsive_list
+    )
 
-    master_import$`STARTUP_SHUTDOWN` <- updated_sessions$master_startup
+    master_import$data$`STARTUP_SHUTDOWN` <- updated_sessions$master_startup
     nonresponsive_list <- updated_sessions$nonresponsive_list
 
     return(list(master_import = master_import, nonresponsive_list = nonresponsive_list))
