@@ -39,8 +39,8 @@ reference:
   - title: General utility functions
     contents:
       - has_concept("utility")
-  - title: classes
+  - title: Classes
     contents:
+      - LoadedWB
       - LoadedWBCollection
-      - WBCollection
 
