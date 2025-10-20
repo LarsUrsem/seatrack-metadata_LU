@@ -109,8 +109,8 @@ describe("File System Operations", {
     wb$add_data("Sheet2", data.frame(x = 7:9, y = 10:12))
     openxlsx2::wb_save(wb, test_file)
     sheets <- load_sheets_as_list(test_file, c("Sheet1", "Sheet2"))
-    expect_equal(length(sheets), 2)
-    expect_true(all(sapply(sheets, is.data.frame)))
+    expect_equal(length(sheets$data), 2)
+    expect_true(all(sapply(sheets$data, is.data.frame)))
     file.remove(test_file)
   })
 
@@ -168,22 +168,22 @@ describe("Data Manipulation Operations", {
       comment = "No response"
     )
     openxlsx2::write_xlsx(df, file_path)
-    result <- load_nonresponsive(c(file_path), c("Lotek"))$lotek
-    expect_equal(nrow(result), 1)
-    expect_equal(result$producer[1], "Lotek")
+    result <- load_nonresponsive(c(file_path), c("Lotek"))
+    expect_equal(nrow(result$sheets_list$lotek$data[[1]]), 1)
+    expect_equal(result$sheets_list$lotek$data[[1]]$producer[1], "Lotek")
     file.remove(file_path)
   })
 
 
   test_that("load_nonresponsive initializes empty sheet if file missing", {
     file_path <- file.path(tmp_dir, "missing_lotek_unresponsive.xlsx")
-    result <- load_nonresponsive(file_path, "Lotek")$lotek
-    expect_equal(nrow(result), 0)
+    result <- load_nonresponsive(file_path, "Lotek")
+    expect_equal(nrow(result$sheets_list$lotek$data[[1]]), 0)
     expect_true(all(c(
       "logger_serial_no", "logger_model", "producer", "production_year", "project",
       "starttime_gmt", "logging_mode", "days_delayed", "programmed_gmt_time",
       "download_type", "download_date", "comment", "priority"
-    ) %in% names(result)))
+    ) %in% names(result$sheets_list$lotek$data[[1]])))
   })
 
 
@@ -442,9 +442,9 @@ describe("Partner Metadata Processing", {
     openxlsx2::wb_save(wb, test_file)
 
     metadata_list <- load_partner_metadata(test_file)
-    expect_type(metadata_list, "list")
-    expect_named(metadata_list, c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES"))
-    expect_equal(nrow(metadata_list$`ENCOUNTER DATA`), 1)
+    expect_equal("LoadedWB", class(metadata_list)[1])
+    expect_named(metadata_list$data, c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES"))
+    expect_equal(nrow(metadata_list$data$`ENCOUNTER DATA`), 1)
 
     file.remove(test_file)
   })
@@ -620,13 +620,12 @@ describe("Partner Metadata Processing", {
         `download / stop_date` = as.Date("2025-01-10"),
         `downloaded by` = "User",
         comment = "No response",
-        `stored or sent to?` = "Nonresponsive"
+        `stored or sent to?` = "Nonresponsive",
       ),
       `RESTART TIMES` = tibble()
     )
 
-    nonresponsive_list <- list(
-      lotek = tibble(
+    nonresponsive_sheet <- tibble(
         logger_serial_no = character(),
         logger_model = character(),
         producer = character(),
@@ -635,16 +634,18 @@ describe("Partner Metadata Processing", {
         starttime_gmt = as.POSIXct(character()),
         download_type = character(),
         download_date = as.Date(character()),
-        comment = character()
-      )
+        comment = character(),
+        intended_species = character(),
+        intended_location = character()
     )
+    nonresponsive_list <- LoadedWBCollection$new(sheets_list = list(lotek = LoadedWB$new(data = list(sheet1 = nonresponsive_sheet))))
 
     result <- handle_partner_metadata("TestColony", new_metadata, master_import, nonresponsive_list)
 
     # Check nonresponsive list updates
-    expect_equal(nrow(result$nonresponsive_list$lotek), 1)
-    expect_equal(result$nonresponsive_list$lotek$logger_serial_no[1], "A")
-    expect_equal(result$nonresponsive_list$lotek$download_type[1], "Nonresponsive")
+    expect_equal(nrow(result$nonresponsive_list$sheets_list$lotek$data[[1]]), 1)
+    expect_equal(result$nonresponsive_list$sheets_list$lotek$data[[1]]$logger_serial_no[1], "A")
+    expect_equal(result$nonresponsive_list$sheets_list$lotek$data[[1]]$download_type[1], "Nonresponsive")
 
     # Check startup sheet updates
     startup_sheet <- result$master_import$`STARTUP_SHUTDOWN`

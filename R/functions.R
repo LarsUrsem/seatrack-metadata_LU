@@ -166,36 +166,52 @@ get_startup_paths <- function() {
 #'
 #' @param file_path A character string specifying the path to the Excel file.
 #' @param sheets A character vector specifying the names of the sheets to be read.
-#' @param skip An integer specifying the number of rows to skip at the beginning of each sheet. Default is 0.
+#' @param skip_rows An integer specifying the number of rows to skip at the beginning of each sheet. Default is 0.
 #' @param force_date A logical indicating whether to attempt to convert date columns to Date type. Default is TRUE.
 #' @param drop_unnamed A logical indicating whether to drop unnamed columns (columns with no header). Default is TRUE.
-#' @param col_types A list the same length as sheets, containing either NULL or a character vector of read_excel classes.
-#' @return A list of data frames, each corresponding to a sheet in the Excel file.
+#' @param col_types A list the same length as sheets, containing either NULL or a numeric vector of classes as in `openxlsx2::read_xlsx`.
+#' @return A `LoadedMetadata` object, with a list of tibbles corresponding to each sheet in `data` and the original workbook in `wb``
 #' @examples
 #' \dontrun{
 #' sheets_data <- load_sheets_as_list("path/to/file.xlsx", c("Sheet1", "Sheet2"), skip = 1)
 #' }
 #' @export
 #' @concept utility
-load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, drop_unnamed = TRUE, col_types = rep(NULL, length(sheets))) {
+load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = TRUE, drop_unnamed = TRUE, col_types = rep(NULL, length(sheets))) {
     if (!file.exists(file_path)) {
         stop("The specified file does not exist.")
     }
     log_trace("Loading file: ", file_path)
+    wb <- openxlsx2::wb_load(file_path)
     # Iterate through sheets and read data
     data_list <- lapply(1:length(sheets), function(sheet_index) {
         sheet <- sheets[sheet_index]
         sheet_col_types <- col_types[[sheet_index]]
         log_trace("Loading sheet: ", sheet)
+
         if (!is.null(sheet_col_types)) {
-            range <- cellranger::cell_cols(1:length(sheet_col_types))
+            range <- 1:length(sheet_col_types)
         } else {
             range <- NULL
         }
 
-        current_sheet <- read_excel(file_path, sheet = sheet, skip = skip, na = c("", "End", "end"), col_types = sheet_col_types, range = range, .name_repair = "unique_quiet")
-        # remove empty rows
-        current_sheet <- current_sheet[rowSums(is.na(current_sheet)) != ncol(current_sheet), ]
+        arg_list <- list(
+            file = wb,
+            sheet = sheet,
+            start_row = skip_rows + 1,
+            skip_empty_rows = TRUE,
+            cols = range,
+            na.strings = c("", "End", "end", "none"),
+            keep_attributes = TRUE
+        )
+        if (!is.null(sheet_col_types)) {
+            arg_list$types <- sheet_col_types
+        }
+
+        sheet_df <- do.call(openxlsx2::wb_to_df, arg_list)
+
+        current_sheet <- tibble(sheet_df[, !is.na(names(sheet_df))])
+
         if (force_date) {
             # keep dates as dates only
             # Get columns where the class is POSIXt and the column name contains "date"
@@ -213,7 +229,8 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
         }
 
         if (drop_unnamed) {
-            unnamed_cols <- grepl("^\\.\\.\\.", names(current_sheet)) | is.na(names(current_sheet))
+            # unnamed_cols <- grepl("^\\.\\.\\.", names(current_sheet)) | is.na(names(current_sheet))
+            unnamed_cols <- grepl("NA.", names(sheet_df))
             if (sum(unnamed_cols > 0)) {
                 # Drop columns that are unnamed (i.e., their names start with "..." or are NA)
                 log_trace("Dropping ", sum(unnamed_cols), " unnamed columns from sheet: ", sheet)
@@ -223,23 +240,24 @@ load_sheets_as_list <- function(file_path, sheets, skip = 0, force_date = TRUE, 
         return(current_sheet)
     })
     names(data_list) <- sheets
-
-    return(data_list)
+    loaded_sheets <- LoadedWB$new(data = data_list, wb = wb)
+    return(loaded_sheets)
 }
 
 #' Load nonresponsive logger sheet for current year
 #'
 #' This function loads the record of unresponsive loggers. If the filepath provided does not exist, it initialises new sheets.
 #' @param file_path String indicating from where the file should be loaded from.
-#' @return A tibble containing the unresponsive logger data.
+#' @return A LoadedWB containing the unresponsive logger data.
 #'
 #' @concept nonresponsive
 load_nonresponsive_sheet <- function(file_path) {
-    loaded_sheet <- NULL
     # Check if file already exists
+
     if (file.exists(file_path)) {
         # If so, load it
-        loaded_sheet <- read_excel(file_path)
+        wb <- openxlsx2::wb_load(file_path)
+        loaded_sheet <- openxlsx2::read_xlsx(wb)
     } else {
 
         loaded_sheet <- tibble(
@@ -262,7 +280,7 @@ load_nonresponsive_sheet <- function(file_path) {
         )
         }
 
-    return(loaded_sheet)
+    return(LoadedWB$new(data = list(sheet1 = loaded_sheet), wb = wb))
 }
 
 #' Load multiple nonresponsive logger sheets
@@ -288,7 +306,9 @@ load_nonresponsive <- function(file_paths, manufacturers) {
         load_nonresponsive_sheet(file_paths[i])
     })
     names(sheets_list) <- tolower(manufacturers)
-    return(sheets_list)
+    sheet_collection <- LoadedWBCollection$new(sheets_list = sheets_list)
+
+    return(sheet_collection)
 }
 
 #' Find logger instances in files
@@ -323,8 +343,8 @@ get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
 #'
 #' This function attempts to load all master import sheets available in the seatrack folder.
 #' @param combine Boolean determining whether or not to combine the sheets into a single dataframe.
-#' @return If combine is TRUE: A list consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
-#'  Otherwise a list where every element is a sheet
+#' @return If combine is TRUE: A tibble consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
+#'  Otherwise a list where every element is a LoadedWB object.
 #' @export
 #' @concept metadata
 load_all_master_import <- function(combine = TRUE) {
@@ -426,18 +446,16 @@ load_all_master_import <- function(combine = TRUE) {
 #' It iterates through the appropriate sheets and combines the data into a list of data frames.
 #' @param colony A character string specifying the name of the colony.
 #' @param file_path File path of master import file
-#' @return A list consisting of two items.
-#'  data: A list of tibbles, each corresponding to a sheet in the master import file.
-#'  path: The file path of the loaded master import file.
+#' @return A LoadedWB object.
 #' @examples
 #' \dontrun{
 #' load_master_import("ColonyA")
 #' }
 #' @export
 #' @concept metadata
-load_master_import <- function(colony = NULL, file_path = NULL) {
+load_master_import <- function(colony = NULL, file_path = NULL, use_stored = TRUE) {
     if (!is.null(colony) && is.null(file_path)) {
-        file_path <- get_master_import_path(colony)
+        file_path <- get_master_import_path(colony, use_stored)
     }
 
     if (is.null(file_path)) {
@@ -451,33 +469,33 @@ load_master_import <- function(colony = NULL, file_path = NULL) {
     # Desired sheets
     sheets <- c("METADATA", "STARTUP_SHUTDOWN")
     startup_col_types <- c(
-        logger_serial_no = "text",
-        logger_model = "text",
-        producer = "text",
-        production_year = "numeric",
-        project = "text",
-        starttime_gmt = "date",
-        logging_mode = "numeric",
-        started_by = "text",
-        started_where = "text",
-        days_delayed = "numeric",
-        programmed_gmt_time = "date",
-        intended_species = "text",
-        intended_location = "text",
-        intended_deployer = "text",
-        shutdown_session = "logical",
-        field_status = "text",
-        downloaded_by = "text",
-        download_type = "text",
-        download_date = "date",
-        decomissioned = "date",
-        shutdown_date = "date",
-        comment = "text"
+        logger_serial_no = 0,
+        logger_model = 0,
+        producer = 0,
+        production_year = 1,
+        project = 0,
+        starttime_gmt = 3,
+        logging_mode = 1,
+        started_by = 0,
+        started_where = 0,
+        days_delayed = 1,
+        programmed_gmt_time = 3,
+        intended_species = 0,
+        intended_location = 0,
+        intended_deployer = 0,
+        shutdown_session = 4,
+        field_status = 0,
+        downloaded_by = 0,
+        download_type = 0,
+        download_date = 2,
+        decomissioned = 2,
+        shutdown_date = 2,
+        comment = 0
     )
 
     import_list <- load_sheets_as_list(file_path, sheets, col_types = list(NULL, startup_col_types))
 
-    return(list(data = import_list, path = file_path))
+    return(import_list)
 }
 
 
@@ -485,7 +503,7 @@ load_master_import <- function(colony = NULL, file_path = NULL) {
 #'
 #' This function reads metadata provided by partners from an Excel file.
 #' It iterates through the appropriate sheets and combines the data into a list of data frames.
-#' @param file_path A character string specifying the path to the Excel file.
+#' @param file_path A character string specifying the absolute path to the Excel file.
 #' @return A list of data frames, each corresponding to a sheet in the Excel file.
 #' @examples
 #' \dontrun{
@@ -587,8 +605,12 @@ add_loggers_from_startup <- function(master_startup) {
     # Force imported classes
     master_classes <- sapply(master_startup, function(variable) paste(class(variable), collapse = "/"))
     excel_classes <- master_classes
-    excel_classes[master_classes %in% c("POSIXct/POSIXt", "Date")] <- "date"
-    excel_classes[master_classes == "character"] <- "text"
+    excel_classes[master_classes == "POSIXct/POSIXt"] <- 2
+    excel_classes[master_classes == "POSIXct/POSIXt"] <- 2
+    excel_classes[master_classes == "Date"] <- 3
+    excel_classes[master_classes == "character"] <- 0
+    excel_classes[master_classes == "numeric"] <- 1
+    excel_classes[master_classes == "logical"] <- 4
 
     log_trace("Checking for new loggers in startup files for locations: ", paste(locations, collapse = ", "))
     master_logger_id_date <- paste(master_startup$logger_serial_no, as.character(master_startup$starttime_gmt))
@@ -598,7 +620,7 @@ add_loggers_from_startup <- function(master_startup) {
 
         # Peek at excel file to determine column number
         startup_file <- tryCatch(
-            suppressWarnings(read_excel(startup_path, .name_repair = "none", n_max = 1)),
+            suppressWarnings(openxlsx2::read_xlsx(startup_path, rows = c(1))),
             error = function(e) {
                 log_trace(paste("Unable to import:", startup_path, e))
                 return(NULL)
@@ -616,7 +638,7 @@ add_loggers_from_startup <- function(master_startup) {
         # Peeking at the excel files can miss empty columns created further down.
         # Import is wrapped in a try catch to handle import failures.
         startup_file <- tryCatch(
-            suppressWarnings(read_excel(startup_path, col_types = excel_classes, .name_repair = "none")),
+            suppressWarnings(openxlsx2::read_xlsx(startup_path, types = excel_classes)),
             error = function(e) {
                 log_trace(paste("Unable to import:", startup_path, e))
                 return(NULL)
@@ -879,7 +901,7 @@ nonresponsive_from_master <- function(all_metadata_combined, nonresponsive_list,
     # biotrack loggers should go in the lotek sheet
     nonresponsive_rows$producer_2[nonresponsive_rows$producer_2 == "biotrack"] <- "lotek"
 
-    for (manufacturer in tolower(names(nonresponsive_list))) {
+    for (manufacturer in tolower(nonresponsive_list$names())) {
         nonresponsive_for_manufacturer <- nonresponsive_rows[nonresponsive_rows$producer_2 == manufacturer, ]
 
         if (nrow(nonresponsive_for_manufacturer) == 0) {
@@ -925,7 +947,7 @@ nonresponsive_from_master <- function(all_metadata_combined, nonresponsive_list,
 append_to_nonresponsive <- function(nonresponsive_list, new_nonresponsive, manufacturer) {
     # reorder columns
 
-    current_rows <- nonresponsive_list[[manufacturer]]
+    current_rows <- nonresponsive_list$sheets_list[[manufacturer]]$data[[1]]
     missing_cols <- setdiff(names(current_rows), names(new_nonresponsive))
     if (length(missing_cols) > 0) {
         for (col in missing_cols) {
@@ -938,7 +960,7 @@ append_to_nonresponsive <- function(nonresponsive_list, new_nonresponsive, manuf
     all_rows <- rbind(current_rows, new_nonresponsive)
     all_rows_non_dup <- all_rows[!duplicated(all_rows$logger_serial_no), ]
     added_rows <- new_nonresponsive[!new_nonresponsive$logger_serial_no %in% current_rows$logger_serial_no, ]
-    nonresponsive_list[[manufacturer]] <- all_rows_non_dup
+    nonresponsive_list$sheets_list[[manufacturer]]$data[[1]] <- all_rows_non_dup
     log_success("Added ", nrow(added_rows), " nonresponsive loggers to ", manufacturer, " sheet.")
     return(nonresponsive_list)
 }
@@ -1167,7 +1189,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
         # biotrack loggers should go in the lotek sheet
         nonresponsive_returns$manufacturer_2[nonresponsive_returns$manufacturer_2 == "biotrack"] <- "lotek"
 
-        for (manufacturer in tolower(names(nonresponsive_list))) {
+        for (manufacturer in tolower(nonresponsive_list$names())) {
             nonresponsive_for_manufacturer <- nonresponsive_returns[nonresponsive_returns$manufacturer_2 == manufacturer, ]
 
             if (nrow(nonresponsive_for_manufacturer) == 0) {
@@ -1186,8 +1208,8 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
                 download_type = "Nonresponsive",
                 download_date = nonresponsive_for_manufacturer$`download / stop_date`,
                 comment = nonresponsive_for_manufacturer$comment,
-                intended_species = nonresponsive_for_manufacturer$intended_species,
-                intended_location = nonresponsive_for_manufacturer$intended_location,
+                intended_species = current_startup$intended_species,
+                intended_location = current_startup$intended_location,
                 logging_mode = current_startup$logging_mode,
                 days_delayed = current_startup$days_delayed,
                 programmed_gmt_time = current_startup$programmed_gmt_time,
@@ -1218,7 +1240,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 #' @return An updated version of the master import file, as a list where each element is a sheet from the excel file.
 #' @export
 #' @concept metadata
-handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = list()) {
+handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = LoadedWBCollection$new()) {
     if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
     }
@@ -1251,7 +1273,7 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
 #' This function writes the provided data frame (`new_master_sheets`) to an Excel file
 #' specified by `filename`.
 #'
-#' @param new_master_sheets A data frame containing the master sheet data to be saved.
+#' @param new_master_sheets A LoadedWB object.
 #' @param filepath A string specifying the path and name of the Excel file to be created.
 #'
 #' @return No return value.
@@ -1263,8 +1285,66 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
 #'
 #' @export
 #' @concept metadata
-save_master_sheet <- function(new_master_sheets, filepath) {
-    openxlsx2::write_xlsx(new_master_sheets, filepath, first_row = TRUE, first_col = TRUE, widths = "auto", na.strings = "")
+save_master_sheet <- function(new_master_sheets, filepath = NULL) {
+    if (is.null(new_master_sheets)) {
+        stop("new_master_sheets is null!")
+    }
+    if (is.null(filepath)){
+        filepath = new_master_sheets$wb$path
+    }
+
+    for (sheet in names(new_master_sheets$data)){
+        print(sheet)
+        new_master_sheets$wb$add_data(
+            sheet = sheet,
+            x = new_master_sheets$data[[sheet]],
+            with_filter = TRUE,
+            remove_cell_style = TRUE,
+            na.strings = "")
+        new_master_sheets$wb$freeze_pane(
+            sheet = sheet,
+            first_active_col = 5,
+            first_active_row  = 2
+            )
+        new_master_sheets$wb$remove_conditional_formatting(sheet = sheet)
+        col_dims <- seq_len(ncol(new_master_sheets$data[[sheet]]))
+        dims_mat_header <- openxlsx2::wb_dims(rows = 1, cols = col_dims)
+        new_master_sheets$wb$add_fill(sheet, dims_mat_header, openxlsx2::wb_color(hex = "#ACB9CA"))
+
+
+        if (sheet == "STARTUP_SHUTDOWN"){
+            col_dims <- openxlsx2::wb_dims(
+            x = new_master_sheets$data[[sheet]],
+            cols = c("download_date", "shutdown_date"), select = "col_names")
+
+            col_letters <- sapply(strsplit(col_dims, ","), function(x) gsub("[[:digit:]]+", "",x ))
+
+            cf_formula <- sprintf('=OR($%s2<>"", $%s2<>"")', col_letters[1], col_letters[2])
+
+            tryCatch({
+                suppressWarnings(
+                    new_master_sheets$wb$add_dxfs_style(
+                        "seatrack_pos",
+                        fontColour = openxlsx2::wb_color(hex = "#006100"),
+                        bgFill = openxlsx2::wb_color("#C6EFCE")
+                    )
+                    )
+            }, error = function(e) {
+                invisible(NULL)
+            })
+
+            new_master_sheets$wb$add_conditional_formatting(
+                sheet,
+                dims = openxlsx2::wb_dims(x = new_master_sheets$data[[sheet]], select = "data"),
+                rule = cf_formula,
+                style = "seatrack_pos"
+            )
+        }
+
+    }
+
+    new_master_sheets$wb$save(filepath)
+    # SET FORMATTING
 }
 
 #' Save multiple nonresponsive logger sheets to Excel files

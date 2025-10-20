@@ -10,7 +10,7 @@ load_nonresponsive_sheet(file_path)
 \item{file_path}{String indicating from where the file should be loaded from.}
 }
 \value{
-A tibble containing the unresponsive logger data.
+A LoadedWB containing the unresponsive logger data.
 }
 \description{
 This function loads the record of unresponsive loggers. If the filepath provided does not exist, it initialises new sheets.

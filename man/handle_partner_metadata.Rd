@@ -8,7 +8,7 @@ handle_partner_metadata(
   colony,
   new_metadata,
   master_import,
-  nonresponsive_list = list()
+  nonresponsive_list = LoadedWBCollection$new()
 )
 }
 \arguments{

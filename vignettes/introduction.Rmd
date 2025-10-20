@@ -25,7 +25,6 @@ library(seatrackRmetadata)
 ```{r setlog, echo = FALSE}
 library(logger)
 log_appender(appender_stdout)
-
 ```
 
 There are a few things that need to be set before the functions can be used. 
@@ -34,13 +33,13 @@ It is important that we can monitor changes made and the reasoning behind them. 
 
 ```{r startlog, eval = FALSE}
 start_logging()
-
 ```
 
-By default the logging level is set to **INFO**. You can also set the scripts to be more verbose by changing the log threshold:
+By default the logging level is set to **INFO**. You can also set the scripts to be more verbose by changing the log threshold using commands from the logger library:
 
 ```{r verbose, eval = FALSE}
-log_threshold (TRACE)
+library(logger)
+log_threshold(TRACE)
 ```
 
 For more information about different logger levels see [log_levels](https://daroczig.github.io/logger/reference/log_levels.html).
@@ -54,25 +53,20 @@ set_sea_track_folder(path_to_seatrack)
 
 ```{r generatepath, echo = FALSE}
 # Not actually setting path in the vignette
-path_to_seatrack <- file.path("a_filepath","SEATRACK - shared")
-sea_track_folder <- path_to_seatrack
-set_sea_track_folder(".")
-logger::log_info("Sea track folder set to: ", sea_track_folder)
+tmp <- tempfile("seatrack_vignette_")
+dir.create(tmp, showWarnings = FALSE, recursive = TRUE)
+sea_track_folder <- file.path(tmp, "SEATRACK - shared")
+dir.create(sea_track_folder, recursive = TRUE, showWarnings = FALSE)
+set_sea_track_folder(sea_track_folder)
 ```
 
 ## Loading data
 
 Once this is set up you can open a partner metadata file. Note that the files shown in this vignette are missing a number of columns present in the real files.
 
-```{r fakeloadpartnerdata, eval=FALSE}
-partner_data <- load_partner_metadata("Metadata_SEATRACK_2025-TestColony.xlsx")
-
-```
-
-```{r generatepartnerdata, echo=FALSE}
-# Not using real data in the vignette
-
-partner_data <- list(
+```{r write-partnerdata, echo=FALSE}
+# Generating some fake excel files for this vignette
+partner_sheets <- list(
   `ENCOUNTER DATA`=tibble::tibble(
     date = as.Date("2025-01-10"),
     ring_number = "42",
@@ -100,27 +94,41 @@ partner_data <- list(
     comment = character()
   )
 )
+partner_xlsx <- file.path(tmp, "Metadata_SEATRACK_2025-TestColony.xlsx")
+wb <- openxlsx2::wb_workbook(partner_xlsx)
+for (sheet_name in names(partner_sheets)) {
+  wb$add_worksheet(sheet <- sheet_name)
+  dummy_header <- list(c("FAKE HEADER"))
+  wb$add_data(
+    sheet = sheet_name,
+    x = dummy_header,
+    colNames = FALSE
+  )
+  wb$add_data(
+    sheet = sheet_name,
+    x = partner_sheets[[sheet_name]],
+    startRow = 2,
+    colNames = TRUE
+  )
+}
+openxlsx2::wb_save(wb, partner_xlsx)
 
 ```
 
 This loads the Excel file into R as a list, where each element of the list is different sheet of the Excel file. 
 
-```{r showpartnerdata}
-names(partner_data)
-head(partner_data$`LOGGER RETURNS`)
+```{r load-partnerdata}
+partner_data <- load_partner_metadata(partner_xlsx)
 ```
 
 You can then load the master file that you wish to update. This can be done by using the colony name. 
 
-```{r fakeloadmasterdata, eval = FALSE}
-master_import <- load_master_import("TestColony")
-```
-
-```{r generatemasterdata, echo = FALSE}
+```{r write-masterdata, echo = FALSE}
+# Generating some fake excel files for this vignette
 colony <- "TestColony"
 master_import_folder <- file.path(sea_track_folder, "Database", "Imports_Metadata")
+dir.create(master_import_folder, recursive = TRUE, showWarnings = FALSE)
 full_colony_file_path <- file.path(master_import_folder, "imports_TestColony_2025.xlsx")
-logger::log_success("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
 
 import_list <- list(
   METADATA = tibble::tibble(
@@ -154,28 +162,35 @@ import_list <- list(
     decomissioned = NA,
     shutdown_date = NA,
     comment = "",
-    )
+  )
 )
-
-master_import <- list(data = import_list, path = full_colony_file_path)
-
+openxlsx2::write_xlsx(import_list, full_colony_file_path, asTable = TRUE)
 ```
 
+```{r load-masterdata}
+master_import <- load_master_import("TestColony")
+```
 
-The function returns a list with two elements, `data` and `path`. `path` is the full file path of the loaded. `data` is a list, where each element is a sheet from the imported master file
+The function returns a class with two elements, `data` and `wb`. `wb` is the original excel workbook from which the data was loaded. `data` is a list, where each element is a sheet from the imported master file.
 
 ```{r showmaster}
 names(master_import$data)
 head(master_import$data$METADATA)
-
 ```
 
 Optionally, you can also load or initialise some sheets of nonresponsive loggers. This function takes a vector of file paths and a vector of manufacturers.
 
-```{r loadunresponsive}
-nonresponsive_list <- load_nonresponsive(c("lotek_sheet.xlsx", "migrate_sheet.xlsx"), c("Lotek", "Migrate Technology"))
+```{r write-unresponsive, echo=FALSE}
+lotek_path <- file.path(tmp, "lotek_sheet.xlsx")
+migrate_path <- file.path(tmp, "migrate_sheet.xlsx")
+
 ```
 
+Initialise the sheets if they don't exist.
+
+```{r loadunresponsive}
+nonresponsive_list <- load_nonresponsive(c(lotek_path, migrate_path), c("Lotek", "Migrate Technology"))
+```
 
 ## Workflow
 
@@ -209,7 +224,7 @@ This workflow can be run using a single function, `handle_partner_metadata` that
 
 ```{r handlealldata}
 new_sheets <- handle_partner_metadata("TestColony", partner_data, master_import_data)
-new_master_sheets <- new_sheets$master_sheet
+new_master_sheets <- new_sheets$master_import
 new_nonresponsive_list <- new_sheets$nonresponsive_list
 ```
 
@@ -222,6 +237,6 @@ save_master_sheet(new_master_sheets, master_import$path)
 And the new/modified nonresponsive sheets.
 
 ```{r savenonresponsive, eval=FALSE}
-save_nonresponsive(paths, new_nonresponsive_list)
+save_nonresponsive(c(lotek_path, migrate_path), new_nonresponsive_list)
 ```
 

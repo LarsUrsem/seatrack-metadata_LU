@@ -7,7 +7,7 @@
 load_sheets_as_list(
   file_path,
   sheets,
-  skip = 0,
+  skip_rows = 0,
   force_date = TRUE,
   drop_unnamed = TRUE,
   col_types = rep(NULL, length(sheets))
@@ -18,16 +18,16 @@ load_sheets_as_list(
 
 \item{sheets}{A character vector specifying the names of the sheets to be read.}
 
-\item{skip}{An integer specifying the number of rows to skip at the beginning of each sheet. Default is 0.}
+\item{skip_rows}{An integer specifying the number of rows to skip at the beginning of each sheet. Default is 0.}
 
 \item{force_date}{A logical indicating whether to attempt to convert date columns to Date type. Default is TRUE.}
 
 \item{drop_unnamed}{A logical indicating whether to drop unnamed columns (columns with no header). Default is TRUE.}
 
-\item{col_types}{A list the same length as sheets, containing either NULL or a character vector of read_excel classes.}
+\item{col_types}{A list the same length as sheets, containing either NULL or a numeric vector of classes as in \code{openxlsx2::read_xlsx}.}
 }
 \value{
-A list of data frames, each corresponding to a sheet in the Excel file.
+A \code{LoadedMetadata} object, with a list of tibbles corresponding to each sheet in \code{data} and the original workbook in `wb``
 }
 \description{
 This function reads specified sheets from an Excel file and returns them as a list of data frames.

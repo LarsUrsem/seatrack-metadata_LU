@@ -14,3 +14,4 @@ test_script.R
 ^doc$
 ^Meta$
 ^.env$
+^scaffolding\.R$

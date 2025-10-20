@@ -4,7 +4,7 @@
 \alias{load_master_import}
 \title{Load master import file for a given colony}
 \usage{
-load_master_import(colony = NULL, file_path = NULL)
+load_master_import(colony = NULL, file_path = NULL, use_stored = TRUE)
 }
 \arguments{
 \item{colony}{A character string specifying the name of the colony.}
@@ -12,9 +12,7 @@ load_master_import(colony = NULL, file_path = NULL)
 \item{file_path}{File path of master import file}
 }
 \value{
-A list consisting of two items.
-data: A list of tibbles, each corresponding to a sheet in the master import file.
-path: The file path of the loaded master import file.
+A LoadedWB object.
 }
 \description{
 This function loads the master import file for a specified colony or directly from a file path.

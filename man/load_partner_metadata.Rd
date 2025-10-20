@@ -7,7 +7,7 @@
 load_partner_metadata(file_path)
 }
 \arguments{
-\item{file_path}{A character string specifying the path to the Excel file.}
+\item{file_path}{A character string specifying the absolute path to the Excel file.}
 }
 \value{
 A list of data frames, each corresponding to a sheet in the Excel file.
