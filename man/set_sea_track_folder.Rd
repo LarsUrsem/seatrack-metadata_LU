@@ -4,16 +4,19 @@
 \alias{set_sea_track_folder}
 \title{Set the base directory for the sea track folder}
 \usage{
-set_sea_track_folder(dir)
+set_sea_track_folder(dir, language = "English_United Kingdom")
 }
 \arguments{
 \item{dir}{A character string specifying the path to the base directory.}
+
+\item{language}{Character string specifying system language to add utf8 encoding to.}
 }
 \value{
 None
 }
 \description{
 This function sets a global variable used by other functions.
+It also sets system locale to allow the handling of Norwegian characters in filenames.
 }
 \examples{
 \dontrun{

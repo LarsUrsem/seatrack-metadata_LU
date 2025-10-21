@@ -328,7 +328,7 @@ describe("Logger Session Management", {
     dir.create(startup_dir, recursive = TRUE, showWarnings = FALSE)
     writeLines("not an excel file", file.path(startup_dir, "corrupt.xlsx"))
     the$sea_track_folder <<- tmp_dir
-    result <- add_loggers_from_startup(df)
+    result <- add_loggers_from_startup(df, data.frame(logger_id_retrieved = c("A"), logger_id_deployed = NA))
     expect_equal(nrow(result), 1)
     file.remove(file.path(startup_dir, "corrupt.xlsx"))
   })
@@ -349,7 +349,7 @@ describe("Logger Session Management", {
     file_path <- file.path(startup_dir, "wrong_type.xlsx")
     openxlsx2::write_xlsx(wrong_type_logger, file_path)
     the$sea_track_folder <<- tmp_dir
-    result <- add_loggers_from_startup(df)
+    result <- add_loggers_from_startup(df, data.frame(logger_id_retrieved = c("A"), logger_id_deployed = NA))
     expect_equal(nrow(result), 1)
     file.remove(file_path)
   })
@@ -366,7 +366,7 @@ describe("Logger Session Management", {
     file_path <- file.path(startup_dir, "wrong_startup.xlsx")
     openxlsx2::write_xlsx(wrong_logger, file_path)
     the$sea_track_folder <<- tmp_dir
-    result <- add_loggers_from_startup(df)
+    result <- add_loggers_from_startup(df, data.frame(logger_id_retrieved = c("A"), logger_id_deployed = NA))
     expect_equal(nrow(result), 1)
     file.remove(file_path)
   })
@@ -631,7 +631,11 @@ describe("Partner Metadata Processing", {
     master_import <- LoadedWB$new(data = master_import_data, wb = wb_workbook())
 
     new_metadata_data <- list(
-      `ENCOUNTER DATA` = tibble(),
+      `ENCOUNTER DATA` = tibble(
+         logger_id_retrieved = c("A"),
+         logger_id_deployed = NA,
+         date = as.Date("2025-01-10")
+      ),
       `LOGGER RETURNS` = tibble(
         logger_id = "A",
         status = "Nonresponsive",

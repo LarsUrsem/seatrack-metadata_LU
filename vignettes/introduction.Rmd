@@ -115,9 +115,15 @@ openxlsx2::wb_save(wb, partner_xlsx)
 
 ```
 
-This loads the Excel file into R as a list, where each element of the list is different sheet of the Excel file. 
 
+You can check for non_processed sheets by location, or just enter a path directly. 
+```{r search-metadata, eval = FALSE}
+unprocessed_metadata_paths <- get_location_unprocessed(location)
+```
+
+The partner metadata excel can then be loaded into R. 
 ```{r load-partnerdata}
+
 partner_data <- load_partner_metadata(partner_xlsx)
 ```
 
@@ -189,7 +195,10 @@ migrate_path <- file.path(tmp, "migrate_sheet.xlsx")
 Initialise the sheets if they don't exist.
 
 ```{r loadunresponsive}
-nonresponsive_list <- load_nonresponsive(c(lotek_path, migrate_path), c("Lotek", "Migrate Technology"))
+nonresponsive_list <- load_nonresponsive(
+  c(lotek_path, migrate_path),
+  c("Lotek", "Migrate Technology")
+)
 ```
 
 ## Workflow
@@ -197,13 +206,16 @@ nonresponsive_list <- load_nonresponsive(c(lotek_path, migrate_path), c("Lotek",
 There are several steps to updating the master import sheet. Firstly checking startup files for missing logger sessions.
 ```{r missing loggers}
 master_import_data <- master_import$data
-updated_startup <- add_loggers_from_startup(master_import_data$`STARTUP_SHUTDOWN`)
+updated_startup <- add_loggers_from_startup(master_import_data$`STARTUP_SHUTDOWN`, partner_data$data$`ENCOUNTER DATA`)
 ```
 
 Then appending reported encounter data. 
 
 ```{r appendmetadata}
-updated_metadata <- append_encounter_data(master_import_data$METADATA, partner_data$data$`ENCOUNTER DATA`)
+updated_metadata <- append_encounter_data(
+  master_import_data$METADATA,
+  partner_data$data$`ENCOUNTER DATA`
+)
 ```
 
 Finally the processing reported logger returns and attempts to update the appropriate session in the master startup sheet, setting download status and dates. 
@@ -213,17 +225,28 @@ This function also handles loggers that the partner restearts, generating new se
 The function will also update the nonresponsive lists. 
 
 ```{r returns}
-updated_sessions <- handle_returned_loggers("TestColony", updated_startup, partner_data$data$`LOGGER RETURNS`, partner_data$data$`RESTART TIMES`, nonresponsive_list)
+updated_sessions <- handle_returned_loggers(
+  "TestColony",
+  updated_startup,
+  partner_data$data$`LOGGER RETURNS`,
+  partner_data$data$`RESTART TIMES`,
+  nonresponsive_list
+)
 ```
 
 At every stage, the log will report the changes that the functions have made to the master sheet. The log will also report when it is unable to handle some part of the partner supplied metadata. This can help identify areas that need manually fixing in either the partner metadata sheet or the master sheet.
 
 ## Combined workflow
 
-This workflow can be run using a single function, `handle_partner_metadata` that takes the colony name and the imported excel files as arguments. 
+This workflow can be run using a single function, `handle_partner_metadata` that takes the colony name and the imported excel files as arguments.
+It returns a list containing the updated master sheets, and the updated nonresponsive sheets.
 
 ```{r handlealldata}
-new_sheets <- handle_partner_metadata("TestColony", partner_data, master_import)
+new_sheets <- handle_partner_metadata(
+  "TestColony",
+  partner_data,
+  master_import
+)
 new_master_sheets <- new_sheets$master_import
 new_nonresponsive_list <- new_sheets$nonresponsive_list
 ```
@@ -231,7 +254,7 @@ new_nonresponsive_list <- new_sheets$nonresponsive_list
 Finally, if you are happy with the changes made, you can save the updated master sheet. 
 
 ```{r savefile, eval=FALSE}
-save_master_sheet(new_master_sheets, master_import$path)
+save_master_sheet(new_master_sheets)
 ```
 
 And the new/modified nonresponsive sheets.

@@ -1,8 +1,10 @@
 #' Set the base directory for the sea track folder
 #'
 #' This function sets a global variable used by other functions.
+#' It also sets system locale to allow the handling of Norwegian characters in filenames.
 #'
 #' @param dir A character string specifying the path to the base directory.
+#' @param language Character string specifying system language to add utf8 encoding to.
 #'
 #' @return None
 #' @examples
@@ -11,13 +13,17 @@
 #' }
 #' @export
 #' @concept setup
-set_sea_track_folder <- function(dir) {
+set_sea_track_folder <- function(dir, language = "English_United Kingdom") {
     if (!dir.exists(dir)) {
         stop("The specified directory does not exist.")
     }
 
     the$sea_track_folder <- dir
     log_info("Sea track folder set to: ", the$sea_track_folder)
+    if (!grepl("utf", tolower(Sys.getlocale()), fixed = TRUE)) {
+        log_info("Forcing locale to allow handling of Norwegian characters")
+        Sys.setlocale("LC_CTYPE", paste0(language, ".utf8"))
+    }
 }
 
 #' Start logging to a file
@@ -101,12 +107,13 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
             log_info("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
             colony_file_name <- character()
             for (import_file in files) {
+                log_trace("Check ", import_file)
                 import_file_path <- file.path(master_import_folder, import_file)
                 master_import_list <- load_master_import(file_path = import_file_path)
                 master_import_startup <- master_import_list$data$STARTUP_SHUTDOWN
                 location_bool <- grepl(colony, master_import_startup$intended_location)
-
-                if (any(location_bool)){
+                log_trace("Checked ", import_file)
+                if (any(location_bool)) {
                     colony_file_name <- import_file
                     break
                 }
@@ -190,9 +197,9 @@ load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = T
         log_trace("Loading sheet: ", sheet)
 
         if (!is.null(sheet_col_types)) {
-            range <- 1:length(sheet_col_types)
+            col_range <- 1:length(sheet_col_types)
         } else {
-            range <- NULL
+            col_range <- NULL
         }
 
         arg_list <- list(
@@ -200,15 +207,15 @@ load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = T
             sheet = sheet,
             start_row = skip_rows + 1,
             skip_empty_rows = TRUE,
-            cols = range,
-            na.strings = c("", "End", "end", "none"),
-            keep_attributes = TRUE
+            cols = col_range,
+            na.strings = c("", "End", "end", "none")
         )
         if (!is.null(sheet_col_types)) {
             arg_list$types <- sheet_col_types
         }
 
         sheet_df <- do.call(openxlsx2::wb_to_df, arg_list)
+        log_trace("Loaded sheet: ", sheet)
 
         current_sheet <- tibble(sheet_df[, !is.na(names(sheet_df))])
 
@@ -343,15 +350,17 @@ get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
 #'
 #' This function attempts to load all master import sheets available in the seatrack folder.
 #' @param combine Boolean determining whether or not to combine the sheets into a single dataframe.
+#' @param skip character vector of location names to not load.
 #' @return If combine is TRUE: A tibble consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
 #'  Otherwise a list where every element is a LoadedWB object.
 #' @export
 #' @concept metadata
-load_all_master_import <- function(combine = TRUE) {
+load_all_master_import <- function(combine = TRUE, skip = c()) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
     }
     all_colony <- unlist(get_all_locations())
+    all_colony <- all_colony[!all_colony %in% skip]
 
     all_paths <- lapply(all_colony, get_master_import_path)
 
@@ -521,7 +530,19 @@ load_partner_metadata <- function(file_path) {
     sheets <- c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES")
 
     # Skip the first row as it contains extra headers.
-    metadata_list <- load_sheets_as_list(file_path, sheets, 1)
+    metadata_list <- load_sheets_as_list(file_path, sheets, 1, col_types = list(
+        NULL,
+        NULL,
+        c(
+            logger_id = 0,
+            logger_model = 0,
+            startdate_GMT = 2,
+            starttime_GMT = 3,
+            `Logging mode` = 0,
+            intended_species = 0,
+            comment = 0
+        )
+    ))
 
     return(metadata_list)
 }
@@ -546,7 +567,7 @@ append_encounter_data <- function(master_metadata, encounter_data) {
     }
 
     # Change longer column names in encounter_data to match those in master_metadata
-    names(encounter_data)[names(encounter_data) == "other relevant variables, e.g. 'gonys', 'culmen,"] <- "other"
+    names(encounter_data)[grep("other relevant variables", names(encounter_data), fixed = TRUE)] <- "other"
 
     # remove invalid rows from encounter_data
     encounter_data <- encounter_data[!is.na(encounter_data$date), ]
@@ -592,6 +613,7 @@ append_encounter_data <- function(master_metadata, encounter_data) {
 #' Incorrectly formatted datetime columns can also lead to issues.
 #'
 #' @param master_startup A data frame containing the master startup and shutdown information.
+#' @param partner_metadata Dataframe of loggers handled by partners
 #'
 #' @return A new version of the master startup data frame, with the logger added if succesful.
 #' @examples
@@ -600,20 +622,21 @@ append_encounter_data <- function(master_metadata, encounter_data) {
 #' }
 #' @export
 #' @concept startups
-add_loggers_from_startup <- function(master_startup) {
-    locations <- unique(master_startup$intended_location)
-
+add_loggers_from_startup <- function(master_startup, partner_metadata) {
+    partner_logger_ids <- unique(c(partner_metadata$logger_id_retrieved, partner_metadata$logger_id_deployed))
+    partner_logger_ids <- partner_logger_ids[!is.na(partner_logger_ids)]
     # Force imported classes
     master_classes <- sapply(master_startup, function(variable) paste(class(variable), collapse = "/"))
     excel_classes <- master_classes
-    excel_classes[master_classes == "POSIXct/POSIXt"] <- 2
-    excel_classes[master_classes == "POSIXct/POSIXt"] <- 2
-    excel_classes[master_classes == "Date"] <- 3
+    excel_classes[master_classes == "POSIXct/POSIXt"] <- 3
+    excel_classes[master_classes == "Date"] <- 2
     excel_classes[master_classes == "character"] <- 0
     excel_classes[master_classes == "numeric"] <- 1
     excel_classes[master_classes == "logical"] <- 4
+    excel_classes_numeric <- as.numeric(excel_classes)
+    names(excel_classes_numeric) <- names(excel_classes)
 
-    log_trace("Checking for new loggers in startup files for locations: ", paste(locations, collapse = ", "))
+    log_trace("Checking for new loggers in startup files")
     master_logger_id_date <- paste(master_startup$logger_serial_no, as.character(master_startup$starttime_gmt))
     startup_paths <- get_startup_paths()
     for (startup_path in startup_paths) {
@@ -639,7 +662,7 @@ add_loggers_from_startup <- function(master_startup) {
         # Peeking at the excel files can miss empty columns created further down.
         # Import is wrapped in a try catch to handle import failures.
         startup_file <- tryCatch(
-            suppressWarnings(openxlsx2::read_xlsx(startup_path, types = excel_classes)),
+            suppressWarnings(openxlsx2::read_xlsx(startup_path, types = excel_classes_numeric)),
             error = function(e) {
                 log_trace(paste("Unable to import:", startup_path, e))
                 return(NULL)
@@ -674,10 +697,13 @@ add_loggers_from_startup <- function(master_startup) {
         #     next
         # }
 
-        # Filter to only include rows with intended_location in locations
-        startup_file <- startup_file[startup_file$intended_location %in% locations &
+        startup_file <- tibble(startup_file)
+
+        # Filter to only include rows where the logger has been handled
+        startup_file <- startup_file[
             !is.na(startup_file$starttime_gmt) &
-            !is.na(startup_file$logger_serial_no), ]
+            !is.na(startup_file$logger_serial_no) &
+            startup_file$logger_serial_no %in% partner_logger_ids, ]
 
         if (nrow(startup_file) == 0) {
             next
@@ -727,7 +753,7 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
     unfinished_indices <- which(unfinished_bool)
     master_startup_unfinished <- master_startup[unfinished_indices, ]
     if (nrow(master_startup_unfinished) == 0) {
-        log_trace(paste0("No unfinished session found for logger ID: ", logger_id, "."))
+        log_warn(paste0("No unfinished session found for logger ID: ", logger_id, "."))
         return(NULL)
     } else if (nrow(master_startup_unfinished) >= 1) {
         if (nrow(master_startup_unfinished) > 1) {
@@ -751,7 +777,7 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
                 units = "days"
             ))
 
-            logger_sessions_finished <- which(!(is.na(logger_sessions$shutdown_date) & is.na(logger_sessions$download_date)))
+            logger_sessions_finished <- which(!(is.na(logger_sessions$shutdown_date) | is.na(logger_sessions$download_date)))
 
             time_diffs[time_diffs < 0] <- NA # Ignore future dates
             if (length(logger_sessions_finished) > 0) {
@@ -760,13 +786,16 @@ get_unfinished_session <- function(master_startup, logger_id, logger_download_st
 
             closest_index <- which(time_diffs == min(time_diffs, na.rm = TRUE) & !is.na(time_diffs))
             if (length(closest_index) == 0) {
-                log_trace(paste("No suitable unfinished session found for:", logger_id))
+                log_warn(paste("No suitable unfinished session found for:", logger_id))
+                return(NULL)
+            } else if (length(closest_index) > 1) {
+                log_warn(paste("Cannot resolve multiple unfinished sessions for:", logger_id))
                 return(NULL)
             }
             unfinished_indices <- logger_session_indices[closest_index]
             master_startup_unfinished <- master_startup[unfinished_indices, ]
         } else {
-            log_trace(paste0("No download date available for logger ID:", logger_id, ". Cannot resolve multiple unfinished sessions."))
+            log_warn(paste0("No download date available for logger ID:", logger_id, ". Cannot resolve multiple unfinished sessions."))
             return(NULL)
         }
     }
@@ -966,6 +995,40 @@ append_to_nonresponsive <- function(nonresponsive_list, new_nonresponsive, manuf
     return(nonresponsive_list)
 }
 
+#' Get unimported metadata
+#'
+#' Checks a location to see if there is unimported metadata in the "not_processed" folder.
+#' If found, returns a list of file paths to these unimported metadata files.
+#' @param location Character string specifying the location (colony) to check for unprocessed metadata.
+#'
+#' @concept metadata
+#' @export
+get_location_unprocessed <- function(location) {
+    if (is.null(the$sea_track_folder)) {
+        stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
+    }
+    locations_path <- file.path(the$sea_track_folder, "Locations")
+    if (!dir.exists(locations_path)) {
+        stop("Locations folder not found in the sea track folder.")
+    }
+    all_location_dirs <- list.dirs(locations_path, full.names = FALSE, recursive = TRUE)
+    location_unprocessed_dir <- all_location_dirs[grepl("not_processed", tolower(all_location_dirs), fixed = TRUE) &
+        grepl(location, all_location_dirs, fixed = TRUE)]
+    if (length(location_unprocessed_dir) == 0) {
+        log_info(paste("No 'not_processed' folder found for location:", location))
+        return(NULL)
+    }
+    unprocessed_files_list <- lapply(location_unprocessed_dir, function(unprocessed_dir) {
+        list.files(file.path(locations_path, unprocessed_dir), pattern = "^[^~].*\\.xlsx$", full.names = TRUE)
+    })
+    unprocessed_files <- unlist(unprocessed_files_list)
+    if (length(location_unprocessed_dir) == 0) {
+        log_info(paste("No unprocessed files found for location:", location))
+        return(NULL)
+    }
+    return(unprocessed_files)
+}
+
 #' Get All Locations
 #'
 #' Retrieves a list of all locations (colonies) organized by country from the Sea Track folder.
@@ -1097,7 +1160,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 
             unfinished_session_result <- get_unfinished_session(master_startup, logger_id, logger_download_stop_date)
             if (is.null(unfinished_session_result)) {
-                log_warn(paste("Skipping logger ID:", logger_id, "due to unresolved unfinished session. This may indicate an error or that this session has already been ended."))
+                log_trace(paste("Skipping logger ID:", logger_id, "due to unresolved unfinished session. This may indicate an error or that this session has already been ended."))
                 unhandled_loggers <- rbind(unhandled_loggers, logger_returns[i, ])
                 next
             }
@@ -1118,7 +1181,7 @@ handle_returned_loggers <- function(colony, master_startup, logger_returns, rest
 
         if (nrow(unhandled_loggers) > 0) {
             unhandled_loggers_summary <- unhandled_loggers[, c("logger_id", "status", "download / stop_date")]
-            log_warn(nrow(unhandled_loggers_summary), "returns were not processed.")
+            log_warn(nrow(unhandled_loggers_summary), " returns were not processed.")
             log_warn("Unhandled returns:\n", paste(capture.output(print(unhandled_loggers_summary, n = nrow(unhandled_loggers_summary)))[c(-1, -3)], collapse = "\n"))
         }
     }
@@ -1250,7 +1313,7 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
     }
 
     log_info("Add missing sessions from start up files")
-    updated_loggers <- add_loggers_from_startup(master_import$data$`STARTUP_SHUTDOWN`)
+    updated_loggers <- add_loggers_from_startup(master_import$data$STARTUP_SHUTDOWN, new_metadata$data$`ENCOUNTER DATA`)
 
     master_import$data$`STARTUP_SHUTDOWN` <- updated_loggers
 
@@ -1369,11 +1432,11 @@ save_master_sheet <- function(new_master_sheets, filepath = NULL) {
 #' @export
 #' @concept nonresponsive
 save_nonresponsive <- function(file_paths, nonresponsive_list) {
-    if (length(nonresponsive_list) != length(file_paths)) {
+    if (length(nonresponsive_list$sheets_list) != length(file_paths)) {
         stop("nonresponsive_list and file_paths must be the same length.")
     }
-    for (i in seq_along(nonresponsive_list)) {
-        openxlsx2::write_xlsx(nonresponsive_list[[i]], file_paths[i], first_row = TRUE, first_active_col = 5, widths = "auto", na.strings = "")
+    for (i in seq_along(nonresponsive_list$sheets_list)) {
+        openxlsx2::write_xlsx(nonresponsive_list$sheets_list[[i]]$data[[1]], file_paths[i], first_row = TRUE, first_active_col = 5, widths = "auto", na.strings = "")
         log_success("Saved nonresponsive sheet to: ", file_paths[i])
     }
 }

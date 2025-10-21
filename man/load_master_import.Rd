@@ -10,6 +10,8 @@ load_master_import(colony = NULL, file_path = NULL, use_stored = TRUE)
 \item{colony}{A character string specifying the name of the colony.}
 
 \item{file_path}{File path of master import file}
+
+\item{use_stored}{If TRUE, use a pre-existing path, rather than searching for a new one. Defaults to TRUE.}
 }
 \value{
 A LoadedWB object.
