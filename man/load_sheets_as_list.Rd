@@ -10,7 +10,8 @@ load_sheets_as_list(
   skip_rows = 0,
   force_date = TRUE,
   drop_unnamed = TRUE,
-  col_types = rep(NULL, length(sheets))
+  col_types = rep(NULL, length(sheets)),
+  col_upper = rep(NULL, length(sheets))
 )
 }
 \arguments{
@@ -24,7 +25,7 @@ load_sheets_as_list(
 
 \item{drop_unnamed}{A logical indicating whether to drop unnamed columns (columns with no header). Default is TRUE.}
 
-\item{col_types}{A list the same length as sheets, containing either NULL or a numeric vector of classes as in \code{openxlsx2::read_xlsx}.}
+\item{col_types}{A list the same length as sheets, containing either NULL or a character vector of column names to be forced into uppercase.}
 }
 \value{
 A \code{LoadedMetadata} object, with a list of tibbles corresponding to each sheet in \code{data} and the original workbook in `wb``

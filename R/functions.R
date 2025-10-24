@@ -177,6 +177,7 @@ get_startup_paths <- function() {
 #' @param force_date A logical indicating whether to attempt to convert date columns to Date type. Default is TRUE.
 #' @param drop_unnamed A logical indicating whether to drop unnamed columns (columns with no header). Default is TRUE.
 #' @param col_types A list the same length as sheets, containing either NULL or a numeric vector of classes as in `openxlsx2::read_xlsx`.
+#' @param col_types A list the same length as sheets, containing either NULL or a character vector of column names to be forced into uppercase.
 #' @return A `LoadedMetadata` object, with a list of tibbles corresponding to each sheet in `data` and the original workbook in `wb``
 #' @examples
 #' \dontrun{
@@ -184,7 +185,8 @@ get_startup_paths <- function() {
 #' }
 #' @export
 #' @concept utility
-load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = TRUE, drop_unnamed = TRUE, col_types = rep(NULL, length(sheets))) {
+load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = TRUE, drop_unnamed = TRUE, 
+col_types = rep(NULL, length(sheets)), col_upper = rep(NULL, length(sheets))) {
     if (!file.exists(file_path)) {
         stop("The specified file does not exist.")
     }
@@ -194,6 +196,7 @@ load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = T
     data_list <- lapply(1:length(sheets), function(sheet_index) {
         sheet <- sheets[sheet_index]
         sheet_col_types <- col_types[[sheet_index]]
+        sheet_upper <- col_upper[[sheet_index]]
         log_trace("Loading sheet: ", sheet)
 
         if (!is.null(sheet_col_types)) {
@@ -244,6 +247,12 @@ load_sheets_as_list <- function(file_path, sheets, skip_rows = 0, force_date = T
                 current_sheet <- current_sheet[, !unnamed_cols]
             }
         }
+        if (!is.null(sheet_upper)) {
+            for (col_name in sheet_upper) {
+                current_sheet[[col_name]] <- toupper(current_sheet[[col_name]])
+            }
+        }
+
         return(current_sheet)
     })
     names(data_list) <- sheets
@@ -541,8 +550,13 @@ load_partner_metadata <- function(file_path) {
             `Logging mode` = 0,
             intended_species = 0,
             comment = 0
+        )),
+        col_upper = list(
+            c("logger_id_retrieved", "logger_id_deployed"),
+            c("logger_id"),
+            c("logger_id")
         )
-    ))
+        )
 
     return(metadata_list)
 }
@@ -1022,7 +1036,7 @@ get_location_unprocessed <- function(location) {
         list.files(file.path(locations_path, unprocessed_dir), pattern = "^[^~].*\\.xlsx$", full.names = TRUE)
     })
     unprocessed_files <- unlist(unprocessed_files_list)
-    if (length(location_unprocessed_dir) == 0) {
+    if (length(unprocessed_files) == 0) {
         log_info(paste("No unprocessed files found for location:", location))
         return(NULL)
     }
@@ -1364,7 +1378,10 @@ save_master_sheet <- function(new_master_sheets, filepath = NULL) {
     }
 
     for (sheet in names(new_master_sheets$data)){
-        print(sheet)
+        sheet_index <- which(names(new_master_sheets$data) == sheet)
+        hidden_rows <- new_master_sheets$wb$worksheets[[sheet_index]]$sheet_data$row_attr$hidden
+        new_master_sheets$wb$worksheets[[sheet_index]]$sheet_data$row_attr$hidden <- rep("", length(hidden_rows))
+
         new_master_sheets$wb$add_data(
             sheet = sheet,
             x = new_master_sheets$data[[sheet]],
@@ -1376,6 +1393,9 @@ save_master_sheet <- function(new_master_sheets, filepath = NULL) {
             first_active_col = 5,
             first_active_row  = 2
             )
+        new_master_sheets$wb$set_col_widths(sheet = sheet, cols = seq_len(ncol(new_master_sheets$data[[sheet]])), widths = "auto")
+        new_master_sheets$wb$set_row_heights(sheet = sheet, rows = seq_len(nrow(new_master_sheets$data[[sheet]]) + 1), hidden = FALSE)
+        wb_set_row_heights(new_master_sheets$wb, sheet = sheet, rows = seq_len(nrow(new_master_sheets$data[[sheet]]) + 1), hidden = FALSE)
         new_master_sheets$wb$remove_conditional_formatting(sheet = sheet)
         col_dims <- seq_len(ncol(new_master_sheets$data[[sheet]]))
         dims_mat_header <- openxlsx2::wb_dims(rows = 1, cols = col_dims)
@@ -1410,8 +1430,20 @@ save_master_sheet <- function(new_master_sheets, filepath = NULL) {
                 style = "seatrack_pos"
             )
         }
-
+        # full_dims <- openxlsx2::wb_dims(x = new_master_sheets$data[[sheet]])
+        # all_col_filters <- lapply(1:ncol(new_master_sheets$data[[sheet]]), function(i) {
+        #     glue::glue('<filterColumn colId="{i}">
+        #     </filterColumn>')
+        # })
+        # all_col_filters <- paste(all_col_filters, collapse = "\n")
+        # autoFilter_value <- glue::glue('
+        # <autoFilter ref="{full_dims}">
+        # {all_col_filters}
+        # </autoFilter>
+        # ')
+        # new_master_sheets$wb$worksheets[[which(names(new_master_sheets$data) == sheet)]]$autoFilter <- autoFilter_value
     }
+
 
     new_master_sheets$wb$save(filepath)
     # SET FORMATTING
