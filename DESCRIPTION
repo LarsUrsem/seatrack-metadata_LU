@@ -21,7 +21,8 @@ Imports:
     seatrackR,
     tidyr,
     flextable,
-    cellranger
+    cellranger,
+    glue
 Suggests: 
     knitr,
     rmarkdown,

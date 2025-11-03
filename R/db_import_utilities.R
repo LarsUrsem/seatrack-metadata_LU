@@ -4,12 +4,17 @@
 #' This function takes an R value and converts it to its corresponding database representation.
 #' It handles different data types such as Date, NA, character, and others.
 #' @param r_value An R value to be converted.
+#' @param force_type An optional string specifying the database type to force for NULL values.
 #' @return A string representing the database value.
 #' @export 
 #' @concept db_import_utility
 R_value_to_db_value <- function(r_value, force_type = "") {
     if (is.na(r_value)) {
-        db_value <- glue::glue("NULL::{force_type}")
+        if(force_type != ""){
+            db_value <- glue::glue("NULL::{force_type}")
+        }else{
+            db_value <- "NULL"
+        }
     } else if ("Date" %in% class(r_value)) {
         db_value <- glue::glue("DATE '{format(r_value)}'")
     } else if (any(class(r_value) %in% c("POSIXct", "POSIXt"))) {
@@ -27,6 +32,7 @@ R_value_to_db_value <- function(r_value, force_type = "") {
 #' This function takes a dataframe of R values and converts each value to its corresponding database representation.
 #' It then constructs a string of database values formatted for SQL insertion.
 #' @param db_cols A dataframe containing the columns to be converted.
+#' @param db_types A named vector specifying the database types for each column. Default is an empty string for each column.
 #' @return A string of database values formatted for SQL insertion.
 #' @export 
 #' @concept db_import_utility

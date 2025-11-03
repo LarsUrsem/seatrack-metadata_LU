@@ -5,6 +5,7 @@
 log.txt
 ^test_data
 ^.*\.xlsx
+^.*\.Rproj
 test_script.R
 ^_pkgdown\.yml$
 ^docs$
@@ -15,3 +16,4 @@ test_script.R
 ^Meta$
 ^.env$
 ^scaffolding\.R$
+^\.devcontainer$

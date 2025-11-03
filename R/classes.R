@@ -2,6 +2,7 @@
 #'
 #' @description A convenience class for handling metadata loaded from workbooks.
 #' @export
+#' @family classes
 LoadedWB <- R6::R6Class(
     "LoadedWB",
     public = list(
@@ -41,6 +42,7 @@ LoadedWB <- R6::R6Class(
 #' @title LoadedWBCollection Class
 #' @description A convenience class for handling collections of LoadedWB objects.
 #' @export
+#' @family classes
 LoadedWBCollection <- R6::R6Class(
     "LoadedWBCollection",
     public = list(
@@ -88,18 +90,21 @@ LoadedWBCollection <- R6::R6Class(
 #' @title SessionBatch Class
 #' @description A convenience class for storing a set of logger sessions along with the type of database import they require.
 #' @export
+#' @family classes
 SessionBatch <- R6::R6Class(
     "SessionBatch",
     public = list(
-        #' @description
-        #' Create a new SessionBatch object
+        #' @description Create a new SessionBatch object
+        #' @param sessions A tibble containing session information from master import startup_shutdown.
+        #' @param type The type of import that needs to occur. Must be either "close_only", "open_only" or "open_and_close".
+        #' @return A new SessionBatch object
         initialize = function(sessions = tibble(), type = c("close_only", "open_only", "open_and_close")) {
             self$type <- match.arg(type)
             self$sessions <- sessions
         },
         #' @field sessions Tibble containing session information from master import startup_shutdown.
         sessions = tibble(),
-        #' The type of import that needs to occur. Must be either "close_only", "open_only" or "open_and_close". 
+        #' @field type The type of import that needs to occur. Must be either "close_only", "open_only" or "open_and_close". 
         type = character(),
         #' @description
         #' Print method for SessionBatch
@@ -116,11 +121,16 @@ SessionBatch <- R6::R6Class(
 #' @title DBImportCollection Class
 #' @description A convenience class for storing logger sessions alongside the deployments and retrievals that are associated with them.
 #' @export
+#' @family classes
 DBImportCollection <- R6::R6Class(
     "DBImportCollection",
     public = list(
         #' @description
         #' Create a new DBImportCollection object
+        #' @param sessions A SessionBatch containing session information from master import startup_shutdown.
+        #' @param retrievals A tibble containing retrievals events information from master import metadata
+        #' @param deployments A tibble containing deployments events information from master import metadata
+        #' @return A new DBImportCollection object
         initialize = function(sessions = SessionBatch$new(), retrievals = tibble(), deployments = tibble()){
             self$sessions = sessions
             self$retrievals = retrievals
@@ -132,6 +142,9 @@ DBImportCollection <- R6::R6Class(
         retrievals = tibble(),
         #' @field deployments Tibble containing retrievals events information from master import metadata
         deployments = tibble(),
+        #' @description
+        #' Print method for DBImportCollection
+        #' @return The DBImportCollection object invisibly        
         print = function() {
             cat("$sessions:\n")
             print(self$sessions)

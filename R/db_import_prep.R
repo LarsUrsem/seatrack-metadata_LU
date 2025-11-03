@@ -7,7 +7,7 @@
 #' @param master_sheets A LoadedWBCollection object containing the master import sheets.
 #' @return A vector of DBImportCollection objects representing the prepared session batches for database import.
 #' @export
-#' @concept db_import
+#' @concept db_import_prep
 prepare_master_sheet_for_db <- function(master_sheets) {
     
     metadata <- master_sheets$data$METADATA
@@ -102,11 +102,11 @@ prepare_master_sheet_for_db <- function(master_sheets) {
 #' It filters out any batches that do not contain sessions and returns a list of prepared session batches.
 #' It adds deployments and retrievals associated with the sessions in each batch.
 #' In cases where sessions have multiple deployments or retrievals, those sessions are removed from the batch and a warning is logged.
-#'' @param session_batches A vector of SessionBatch objects to be prepared for database import.
-#'' @param metadata A dataframe containing metadata information for the sessions.
+#' @param session_batches A vector of SessionBatch objects to be prepared for database import.
+#' @param metadata A dataframe containing metadata information for the sessions.
 #' @return A vector of DBImportCollection objects representing the prepared session batches for database import.
 #' @export
-#' @concept db_import
+#' @concept db_import_prep
 prepare_session_batches <- function(session_batches, metadata){
     session_metadata_batches <- sapply(session_batches, prepare_session_batch, metadata = metadata)
     session_metadata_batches <- session_metadata_batches[which(!sapply(session_metadata_batches , is.null))]
@@ -118,11 +118,11 @@ prepare_session_batches <- function(session_batches, metadata){
 #' This function prepares a session batch for database import by processing each batch and extracting relevant metadata.
 #' It adds deployments and retrievals associated with the sessions in each batch.
 #' In cases where sessions have multiple deployments or retrievals, those sessions are removed from the batch and a warning is logged.
-#'' @param session_batch A SessionBatch object to be prepared for database import.
-#'' @param metadata A dataframe containing metadata information for the sessions.
+#' @param session_batch A SessionBatch object to be prepared for database import.
+#' @param metadata A dataframe containing metadata information for the sessions.
 #' @return DBImportCollection object representing the prepared session batches for database import.
 #' @export
-#' @concept db_import
+#' @concept db_import_prep
 prepare_session_batch <- function(session_batch, metadata){
     if(nrow(session_batch$sessions) == 0){
         log_info(glue::glue("No sessions available. Sessions would be {gsub('_',' ', session_batch$type)}"))
@@ -181,7 +181,7 @@ get_open_session_dates <- function(sessions){
 #' @param session_batch A SessionBatch object containing session information from master import startup_shutdown.
 #' @param metadata A dataframe containing metadata information for the sessions.
 #' @return A list containing a dataframe of deployments and a tibble of sessions.
-#' @concept db_import
+#' @concept db_import_prep
 #' @export 
 prepare_session_deployments <- function(session_batch, metadata){
 
@@ -244,7 +244,7 @@ prepare_session_deployments <- function(session_batch, metadata){
 #' @param session_batch A SessionBatch object containing session information from master import startup_shutdown.
 #' @param metadata A dataframe containing metadata information for the sessions.
 #' @return A list containing a dataframe of retrievals and a tibble of sessions.
-#' @concept db_import
+#' @concept db_import_prep
 #' @export 
 prepare_session_retrievals <- function(session_batch, metadata){
 

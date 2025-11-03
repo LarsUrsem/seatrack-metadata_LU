@@ -27,6 +27,14 @@ reference:
     desc: Functions to load and update encounter data
     contents:
       - has_concept("encounters")
+  - title: Database import
+    desc: Functions to import master import data into the Database
+  - subtitle: Preperation
+    contents:
+      - has_concept("db_import_prep")
+  - subtitle: Import
+    contents:
+      - has_concept("db_import")
   - title: Field planning sheet functions
     desc: Functions to load and handle data from the field planning sheet
     contents:
@@ -39,8 +47,12 @@ reference:
   - title: General utility functions
     contents:
       - has_concept("utility")
+  - title: Database utility functions
+    contents:
+      - has_concept("db_import_utility")
   - title: Classes
     contents:
       - LoadedWB
       - LoadedWBCollection
-
+      - SessionBatch
+      - DBImportCollection
