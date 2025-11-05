@@ -19,6 +19,8 @@ Other classes:
 \item{\code{data}}{A list of tibbles}
 
 \item{\code{wb}}{A workbook object}
+
+\item{\code{modified}}{Has the workbook been modified since import?}
 }
 \if{html}{\out{</div>}}
 }

@@ -22,6 +22,9 @@ LoadedWB <- R6::R6Class(
         #' @field wb A workbook object
         wb = openxlsx2::wb_workbook(),
 
+        #' @field modified Has the workbook been modified since import?
+        modified = FALSE,
+
         #' @description
         #' Print method for LoadedWB
         #' @return The LoadedWB object invisibly
@@ -83,6 +86,16 @@ LoadedWBCollection <- R6::R6Class(
         #' @field all_names The names of all workbooks in the collection
         all_names = function() {
             names(self$sheets_list)
+        },
+        #' @field modified sheets_list
+        modified = function(){
+            modified_sheets <- sapply(self$sheets_list, function(x) {
+                if(x$modified){
+                    return(x)
+                }
+            })
+            modified_sheets <- modified_sheets[!sapply(is.null, modified_sheets)]
+            return(modified_sheets)
         }
     )
 )

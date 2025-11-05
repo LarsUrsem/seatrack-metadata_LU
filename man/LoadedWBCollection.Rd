@@ -26,6 +26,8 @@ Other classes:
 \item{\code{all_paths}}{The paths of all workbooks in the collection}
 
 \item{\code{all_names}}{The names of all workbooks in the collection}
+
+\item{\code{modified}}{sheets_list}
 }
 \if{html}{\out{</div>}}
 }
