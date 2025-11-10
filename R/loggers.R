@@ -23,7 +23,8 @@ get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
         }
     })
     search_result_nonull <- search_result[which(!sapply(search_result, is.null))]
-    return(search_result_nonull)
+    search_result_nodups <- search_result_nonull[which(!duplicated(sapply(search_result_nonull, function(x) x$path)))]
+    return(search_result_nodups)
 }
 
 #' Find a logger's unfinished session in the master startup data frame

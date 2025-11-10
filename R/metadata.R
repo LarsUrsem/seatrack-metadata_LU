@@ -147,11 +147,12 @@ load_master_import <- function(colony = NULL, file_path = NULL, use_stored = TRU
 #' This function attempts to load all master import sheets available in the seatrack folder.
 #' @param combine Boolean determining whether or not to combine the sheets into a single dataframe.
 #' @param skip character vector of location names to not load.
+#' @param distinct Boolean determining whether to only keep unique sheets (non duplicated paths)
 #' @return If combine is TRUE: A tibble consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
 #'  Otherwise a list where every element is a LoadedWB object.
 #' @export
 #' @concept metadata
-load_all_master_import <- function(combine = TRUE, skip = c()) {
+load_all_master_import <- function(combine = TRUE, skip = c(), distinct = TRUE) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
     }
@@ -174,9 +175,13 @@ load_all_master_import <- function(combine = TRUE, skip = c()) {
     all_paths <- all_paths[null_path_idx]
     all_colony <- all_colony[null_path_idx]
 
-    distinct_idx <- which(!duplicated(all_paths))
-    all_colony <- all_colony[distinct_idx]
-    all_paths <- all_paths[distinct_idx]
+
+    if (distinct) {
+        distinct_idx <- which(!duplicated(all_paths))
+        all_colony <- all_colony[distinct_idx]
+        all_paths <- all_paths[distinct_idx]
+    }
+
 
     all_sheets <- lapply(all_colony, load_master_import)
 
@@ -187,6 +192,11 @@ load_all_master_import <- function(combine = TRUE, skip = c()) {
         return(all_sheets)
     }
 
+    return(combine_all_metadata(all_sheets))
+
+}
+
+combine_all_metadata <- function(all_sheets){
     all_data <- lapply(all_sheets, function(x) x$data)
     # combine metadata
     all_metadata <- lapply(all_data, function(x) x$METADATA)
@@ -328,6 +338,22 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
     nonresponsive_list <- updated_sessions$nonresponsive_list
 
     return(list(master_import = master_import, nonresponsive_list = nonresponsive_list))
+}
+
+#' Given a new master import, modify all master imports in a list sharing the same path
+#'
+#' When loading all master import files with distinct = FALSE, we will end up with duplicate master import files.
+#' This is because multiple colonies can share the same master import file.
+#' If we modify one of these (for example, updating from partner metadata for that colony), we need to make sure the files stay in sync.
+#'
+#' @param all_master_import A list of master imports, as produced by load_all_master_import(combine = FALSE, distinct = FALSE)
+#' @param new_master_import A modified master import sheet to be distributed throughout the list
+modify_master_import_in_list <- function(all_master_import, new_master_import) {
+    new_master_import_path <- new_master_import$path
+    all_master_import[which(all_master_import, function(x) {
+        x$path == new_master_import_path
+    })] <- new_master_import
+    return(all_master_import)
 }
 
 
