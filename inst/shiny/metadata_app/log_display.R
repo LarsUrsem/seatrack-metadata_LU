@@ -25,8 +25,10 @@ logger_ui <- function(id) {
 
 logger_server <- function(id) {
     moduleServer(id, function(input, output, session) {
-        log_path <- paste0("seatrack_functions_log_", Sys.Date(), ".txt")
-        start_logging(log_file = log_path)
+        # log_path <- paste0("seatrack_functions_log_", Sys.Date(), ".txt")
+        # start_logging(log_file = log_path)
+
+        log_path <- "app.log"
 
         log_file <- reactiveFileReader(
             session = session,
