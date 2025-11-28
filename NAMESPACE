@@ -3,8 +3,6 @@
 export(DBImportCollection)
 export(LoadedWB)
 export(LoadedWBCollection)
-export(R_df_to_db_values)
-export(R_value_to_db_value)
 export(SessionBatch)
 export(add_loggers_from_startup)
 export(append_encounter_data)
