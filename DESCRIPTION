@@ -19,6 +19,7 @@ Imports:
     tibble,
     DBI,
     seatrackR,
+    seatrackRgls,
     tidyr,
     flextable,
     cellranger,
@@ -28,6 +29,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
-    seatrackR=github::NINAnor/seatrack-db/seatrackR
+    seatrackR=github::NINAnor/seatrackR,
+    seatrackRgls=github::NINAnor/seatrack-gls
 VignetteBuilder: knitr
 Config/testthat/edition: 3

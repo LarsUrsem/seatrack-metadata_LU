@@ -10,5 +10,6 @@
 #' @importFrom tibble tibble
 #' @importFrom utils capture.output
 #' @importFrom utils globalVariables
+#' @importFrom utils read.csv
 ## usethis namespace: end
 NULL

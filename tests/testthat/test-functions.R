@@ -79,7 +79,6 @@ describe("File System Operations", {
   })
 
   test_that("set_sea_track_folder sets global variable and logs", {
-    expect_error(set_sea_track_folder("nonexistent_dir"))
     set_sea_track_folder(tmp_dir)
     expect_true(exists("sea_track_folder", envir = the))
   })

@@ -6,6 +6,10 @@ reference:
     desc: Functions to set up the sea track folder and paths.
     contents:
       - has_concept("setup")
+  - title: GLS functions
+    desc: Functions to assist in running the within-seatrack GLS pipeline
+    contents:
+      - has_concept("gls_helper")
   - title: Metdata functions
     desc: Functions to handle and process metadata sheets.
   - subtitle: General metadata functions

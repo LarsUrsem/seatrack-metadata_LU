@@ -43,7 +43,8 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 #' @concept setup
 set_sea_track_folder <- function(dir, language = "English_United Kingdom") {
     if (!dir.exists(dir)) {
-        stop("The specified directory does not exist.")
+        log_error("The specified directory does not exist.")
+        return()
     }
 
     the$sea_track_folder <- dir
