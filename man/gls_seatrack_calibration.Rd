@@ -4,7 +4,7 @@
 \alias{gls_seatrack_calibration}
 \title{Handle existing GLS calibration data}
 \usage{
-gls_seatrack_calibration(metadata_path)
+gls_seatrack_calibration(metadata_path, split_years = "06-01")
 }
 \arguments{
 \item{metadata_path}{Path to metadata Excel file}

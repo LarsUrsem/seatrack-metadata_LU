@@ -10,5 +10,5 @@ docs
 .env
 .devcontainer/devcontainer.json
 .devcontainer
-
+/test/
 .Renviron
