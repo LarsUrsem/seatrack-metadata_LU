@@ -47,7 +47,7 @@ print(col_upper)
             start_row = skip_rows + 1,
             skip_empty_rows = TRUE,
             cols = col_range,
-            na.strings = c("", "End", "end", "none")
+            na.strings = c("", "End", "end", "none", "-")
         )
         if (!is.null(sheet_col_types)) {
             arg_list$types <- sheet_col_types

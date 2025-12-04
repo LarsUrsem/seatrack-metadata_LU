@@ -12,6 +12,9 @@
 #' @export
 #' @concept db_import_utility
 check_db_metadata_import <- function(metadata_df, table, col_names = NULL, db_col_names = NULL) {
+    if (nrow(metadata_df) == 0) {
+        return(logical(0))
+    }
     existing_rows <- get_db_metadata_import(metadata_df, table, col_names, db_col_names)
     log_trace("Check existing rows in database using columns: ", paste(col_names, collapse = ", "), "... ", nrow(existing_rows), " existing rows found")
 
