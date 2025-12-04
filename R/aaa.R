@@ -5,6 +5,7 @@
 #' @param log_dir A character string specifying the directory where the log file will be saved. If NULL, the log file will be saved in the current working directory.
 #' @param log_file A character string specifying the name of the log file. Default is "seatrack_functions_log.txt".
 #' @param silent Boolean. If FALSE, logger will not log that it has start logging.
+#' @param silent Boolean. If FALSE, logger will not log that it has start logging.
 #' @return None
 #'
 #' @examples
@@ -23,7 +24,10 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 
     log_appender(appender_tee(log_file))
     log_threshold(INFO)
-    if(!silent){
+    if (!silent) {
+        log_info("Logging started. Log file: ", log_file)
+    }
+    if (!silent) {
         log_info("Logging started. Log file: ", log_file)
     }
 }
