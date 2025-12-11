@@ -1,3 +1,50 @@
+#' Calibrate all species/colony combinations found in seatrack logger data import folder
+#'
+#' Uses hard coded file paths to call gls_calibrate_species_colony for all species/colony combinations found in seatrack database for loggers in import folder.
+#' @param no_pos_only Logical indicating whether to include only loggers without position data in the database. Default is TRUE.
+#' @param rerun_existing Logical indicating whether to rerun calibration for loggers that already have calibration data. Default is TRUE.
+#' @param include_existing Logical indicating whether to include existing calibration data in the final output. Default is TRUE.
+#' @param filter_plots Logical indicating whether to export filter plots. Default is FALSE.
+#' @return None. The function saves the prepared calibration data to the specified output directory.
+#' @concept gls_helper
+#' @export
+gls_calibrate_all <- function(no_pos_only = TRUE, rerun_existing = TRUE, include_existing = TRUE, filter_plots = FALSE) {
+    import_directory <- file.path(the$sea_track_folder, "Database\\Imports_Logger data\\Raw logger data\\ALL")
+    log_info("Get all species/colony combinations from ", import_directory)
+    all_metadata <- gls_metadata(import_directory, no_pos_only = no_pos_only)
+    species_colony <- all_metadata[, c("species", "colony")]
+    species_colony <- species_colony[stats::complete.cases(species_colony), ]
+    species_colony <- dplyr::distinct(species_colony)
+    for (i in seq_len(nrow(species_colony))) {
+        species <- species_colony$species[i]
+        colony <- species_colony$colony[i]
+        gls_calibrate_species_colony(import_directory, species, colony, no_pos_only, rerun_existing, include_existing, filter_plots)
+    }
+}
+
+#' Prepare a seatrack species/colony combination for calibration
+#'
+#' Uses hard coded file paths to call gls_prepare_calibration. Filters metadata passed to gls_prepare_calibration by species/colony.
+#' @param import_directory Path to the directory containing GLS files.
+#' @param species Species name to filter metadata.
+#' @param colony Colony name to filter metadata.
+#' @param no_pos_only Logical indicating whether to include only loggers without position data in the database. Default is TRUE.
+#' @param rerun_existing Logical indicating whether to rerun calibration for loggers that already have calibration data. Default is TRUE.
+#' @param include_existing Logical indicating whether to include existing calibration data in the final output. Default is TRUE.
+#' @param filter_plots Logical indicating whether to export filter plots. Default is FALSE.
+#' @return None. The function saves the prepared calibration data to the specified output directory.
+#' @export
+#' @concept gls_helper
+gls_calibrate_species_colony <- function(
+    import_directory = file.path(the$sea_track_folder, "Database\\Imports_Logger data\\Raw logger data\\ALL"),
+    species, colony, no_pos_only = TRUE, rerun_existing = TRUE, include_existing = TRUE, filter_plots = FALSE) {
+    log_info("Preparing calibration for species '", species, "' and colony '", colony, "'")
+    output_directory <- file.path(the$sea_track_folder, "Database", "Imports_Logger data", "Callibration_GLSpositions", species, colony)
+    existing_calibration_dir <- file.path(the$sea_track_folder, "Locations")
+
+    gls_prepare_calibration(import_directory, output_directory, species, colony, no_pos_only, existing_calibration_dir, rerun_existing, include_existing, filter_plots)
+}
+
 #' Get `all_colony_info` for GLS processing
 #'
 #' Simple function to get seatrack colonies from database and shape the dataframe for immediate use in seatrackRgls
@@ -15,6 +62,7 @@ gls_seatrack_colony_info <- function() {
 #' Function to reshape existing seatrack GLS calibration settings for immediate use in seatrackRgls
 #'
 #' @param metadata_path Path to metadata Excel file
+#' @param split_years Character string indicating the month and day to split years for calibration (e.g., "06-01" for June 1st). Default is "06-01".
 #' @return A list with two dataframes: calibration_data and extra_metadata
 #' @export
 #' @concept gls_helper
@@ -147,11 +195,15 @@ gls_get_existing_calibration <- function(existing_calibration_dir = file.path(th
 #'
 #' Function to scan a directory for GLS files and retrieve corresponding metadata from the Sea Track database.
 #' @param import_directory Path to the directory containing GLS files.
+#' @param colony Colony name to filter metadata. Default is NULL (no filtering).
+#' @param species Species name to filter metadata. Default is NULL (no filtering).
+#' @param time_windows Logical indicating whether to split metadata into time windows based on deployment/retrieval dates. Default is TRUE.
+#' @param split_years Character string indicating the month and day to split years for calibration (e.g., "06-01" for June 1st). Default is "06-01".
 #' @param no_pos_only Logical indicating whether to include only loggers without position data in the database. Default is TRUE.
 #' @return A dataframe containing metadata for the GLS loggers found in the import directory.
 #' @export
 #' @concept gls_helper
-gls_metadata <- function(import_directory, no_pos_only = TRUE) {
+gls_metadata <- function(import_directory, colony = NULL, species = NULL, time_windows = TRUE, split_years = "06-01", no_pos_only = TRUE) {
     print("Scan import directory for files...")
     all_files <- list.files(import_directory, pattern = "*.lux|*.lig", recursive = TRUE, full.names = TRUE)
     all_files_split <- strsplit(basename(all_files), "_")
@@ -161,8 +213,10 @@ gls_metadata <- function(import_directory, no_pos_only = TRUE) {
     file_info <- do.call(rbind, file_info_list)
     file_info <- data.frame(filename = all_files, file_info)
 
-    db_info <- seatrackR::getSessionInfo(posdata_filename = file_info$id_year, has_pos_data = !no_pos_only, logger_download_type = "Successfully downloaded")
-
+    db_info <- seatrackR::getSessionInfo(posdata_filename = file_info$id_year, has_pos_data = !no_pos_only, logger_download_type = "Successfully downloaded", colony_names = colony, species_names = species)
+    if (nrow(db_info) == 0) {
+        stop("No metadata found in database.")
+    }
     # logger_id, logger_model, species, date_deployed, date_retrieved, colony
     metadata <- dplyr::select(
         db_info,
@@ -173,55 +227,130 @@ gls_metadata <- function(import_directory, no_pos_only = TRUE) {
         date_retrieved = retrieval_date,
         colony
     )
+    # report missing files
+    if (time_windows) {
+        # split by deployment/retrieval dates
+        id_year <- paste(metadata$logger_id, metadata$date_deployed, metadata$date_retrieved)
+        all_time_windows <- lapply(unique(id_year), function(idy) {
+            logger_metadata <- metadata[id_year == idy, ]
+            logger_deployment_year <- as.numeric(format(logger_metadata$date_deployed, "%Y"))[1]
+            logger_retrieval_year <- as.numeric(format(logger_metadata$date_retrieved, "%Y"))[1]
+
+
+            time_windows <- seatrackRgls:::get_calibration_splits(logger_metadata, split_years)
+
+            new_metadata <- data.frame(
+                logger_metadata[, c("logger_id", "logger_model")],
+                time_windows,
+                logger_metadata[, !names(logger_metadata) %in% c("logger_id", "logger_model", "date_deployed", "date_retrieved")]
+            )
+            new_metadata$total_years_tracked <- paste(logger_deployment_year, logger_retrieval_year, sep = "_")
+            new_metadata$year_tracked <- paste(format(new_metadata$start_datetime, "%Y"), format(new_metadata$end_datetime, "%Y"), sep = "_")
+            return(new_metadata)
+        })
+        metadata <- do.call(rbind, all_time_windows)
+    }
+
     return(metadata)
 }
+
+
 
 #' Prepare GLS calibration data using seatrack database
 #'
 #' Function to prepare GLS calibration data for use with seatrackRgls, based on GLS files in the import directory and metadata from the Sea Track database.
 #' @param import_directory Path to the directory containing GLS files.
 #' @param output_directory Path to the directory where the prepared calibration data will be saved.
+#' @param species Species name to filter metadata. Default is NULL (no filtering).
+#' @param colony Colony name to filter metadata. Default is NULL (no filtering).
 #' @param no_pos_only Logical indicating whether to include only loggers without position data in the database. Default is TRUE.
-#' @param existing_calibration_dir Directory containing existing calibration data. Default is NULL. If provided, loggers already present in this directory will be excluded from the new calibration data.
+#' @param existing_calibration_dir Directory containing existing calibration data. Default is NULL. If provided, calibration data from this directory will be merged.
+#' @param rerun_existing Logical indicating whether to rerun calibration for loggers that already have calibration data. Default is TRUE.
 #' @param include_existing Logical indicating whether to include existing calibration data in the final output. Default is TRUE.
+#' @param filter_plots Logical indicating whether to export filter plots. Default is FALSE.
 #' @return None. The function saves the prepared calibration data to the specified output directory.
 #' @export
 #' @concept gls_helper
-gls_prepare_calibration <- function(import_directory, output_directory, no_pos_only = TRUE, existing_calibration_dir = NULL, include_existing = TRUE) {
-    metadata <- gls_metadata(import_directory, no_pos_only)
+gls_prepare_calibration <- function(import_directory, output_directory, species = NULL, colony = NULL, no_pos_only = TRUE, existing_calibration_dir = NULL, rerun_existing = TRUE, include_existing = TRUE, filter_plots = FALSE) {
+    metadata <- gls_metadata(import_directory, colony, species, time_windows = TRUE, no_pos_only = no_pos_only)
+    calibration_output_dir <- file.path(output_directory)
+    calibration_filename <- paste(species, colony, "calibration.xlsx", sep = "_")
+
+    existing_calibration_data <- data.frame(logger_id = character(), total_years_tracked = character())
     if (!is.null(existing_calibration_dir)) {
         # Load existing calibration data if available and merge
         existing_calibration_file <- gls_get_existing_calibration(existing_calibration_dir)
         existing_calibration_data <- existing_calibration_file$calibration_data
+        if (!is.null(species)) {
+            existing_calibration_data <- existing_calibration_data[existing_calibration_data$species %in% species, ]
+        }
+        if (!is.null(colony)) {
+            existing_calibration_data <- existing_calibration_data[existing_calibration_data$colony %in% colony, ]
+        }
+    }
 
-        metadata_id_year <- paste(metadata$logger_id, format(metadata$date_deployed, "%Y"))
-        existing_id_year <- paste(existing_calibration_data$logger_id, sapply(strsplit(existing_calibration_data$total_years_tracked, "_"), function(x) x[1]))
+    # check for calibration data in export dir and merge it
+    if (file.exists(file.path(calibration_output_dir, calibration_filename))) {
+        existing_export_data <- openxlsx2::read_xlsx(file.path(calibration_output_dir, calibration_filename))
+        existing_calibration_data <- dplyr::bind_rows(existing_calibration_data, existing_export_data)
+    }
+
+    if (nrow(existing_calibration_data) > 0) {
+        metadata_id_year <- paste(metadata$logger_id, metadata$total_years_tracked)
+        existing_id_year <- paste(existing_calibration_data$logger_id, existing_calibration_data$total_years_tracked)
+        existing_calibration_data <- existing_calibration_data[!duplicated(existing_id_year), ]
+
         # Remove existing calibration rows from metadata
         metadata <- metadata[!metadata_id_year %in% existing_id_year, ]
+        if (!rerun_existing && nrow(metadata) == 0) {
+            log_info("All files already have calibration data.")
+            return()
+        }
+    }
+
+    if (rerun_existing && nrow(existing_calibration_data) > 0) {
+        metadata <- dplyr::bind_rows(existing_calibration_data, metadata)
+    }
+
+    if (nrow(metadata) == 0) {
+        log_warn("No metadata or previous calibration data found for", species, colony)
+        return()
     }
 
     all_colony_info <- gls_seatrack_colony_info()
     calibration_template <- seatrackRgls::prepare_calibration(
         import_directory,
-        data.frame(metadata[1,]),
+        data.frame(metadata),
         all_colony_info,
         output_directory,
-        FALSE
+        export_calibration_template = FALSE,
+        show_filter_plots = filter_plots
     )
-    if (include_existing) {
-        calibration_template <- dplyr::bind_rows(existing_calibration_data, calibration_template)
+    calibration_template_id_year <- paste(calibration_template$logger_id, calibration_template$year_tracked)
+    if (nrow(existing_calibration_data) == 0) {
+        include_existing <- FALSE
+    } else {
+        existing_id_year <- paste(existing_calibration_data$logger_id, existing_calibration_data$year_tracked)
     }
 
-    calibration_output_dir <- file.path(output_directory, "calibration_data")
+    if (include_existing) {
+        existing_id_year <- paste(existing_calibration_data$logger_id, existing_calibration_data$year_tracked)
+        match_idx <- match(existing_id_year, calibration_template_id_year)
+        calibration_template[match_idx[!is.na(match_idx)], c("sun_angle_start", "sun_angle_end", "light_threshold")] <- existing_calibration_data[!is.na(match_idx), c("sun_angle_start", "sun_angle_end", "light_threshold")]
+    } else {
+        calibration_template <- calibration_template[!calibration_template_id_year %in% existing_id_year, ]
+    }
+
     seatrackRgls::calibration_to_wb(
         calibration_template,
-        calibration_output_dir
+        calibration_output_dir,
+        calibration_filename = calibration_filename
     )
 }
 
 #' Process GLS position data using seatrackRgls
 #'
-#' Function to process GLS position data from a specified directory using seatrackRgls. 
+#' Function to process GLS position data from a specified directory using seatrackRgls.
 #' The only additional functionality is fetching colony information from the Sea Track database.
 #' @param import_directory Path to the directory containing GLS files.
 #' @param calibration_data Dataframe containing GLS calibration data.
@@ -229,7 +358,7 @@ gls_prepare_calibration <- function(import_directory, output_directory, no_pos_o
 #' @return None. The function saves the processed position data to the specified output directory.
 #' @export
 #' @concept gls_helper
-gls_process_positions <- function(import_directory, calibration_data, output_directory){
+gls_process_positions <- function(import_directory, calibration_data, output_directory) {
     all_colony_info <- gls_seatrack_colony_info()
     process_positions(
         import_directory,

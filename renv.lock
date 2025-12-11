@@ -1364,6 +1364,34 @@
       "Author": "Rebecca Killick [aut, cre], Kaylea Haynes [ctb], Harjit Hullait [ctb], Idris Eckley [ths], Paul Fearnhead [ctb, ths], Robin Long [ctb], Jamie Lee [ctr]",
       "Encoding": "UTF-8"
     },
+    "chron": {
+      "Package": "chron",
+      "Version": "2.3-62",
+      "Source": "Repository",
+      "Title": "Chronological Objects which Can Handle Dates and Times",
+      "Description": "Provides chronological objects which can handle dates and times.",
+      "Authors@R": "c(person(\"David\", \"James\", role = \"aut\", comment = \"S original\"), person(\"Kurt\", \"Hornik\", role = c(\"aut\", \"trl\", \"cre\"), email = \"Kurt.Hornik@R-project.org\", comment = c(ORCID = \"0000-0003-4198-9911\", \"R port\")), person(\"Gabor\", \"Grothendieck\", role = \"ctb\", email = \"ggrothendieck@gmail.com\"), person(\"R Core Team\", role = \"ctb\"))",
+      "Depends": [
+        "R (>= 2.12.0)"
+      ],
+      "Imports": [
+        "graphics",
+        "stats"
+      ],
+      "Suggests": [
+        "scales",
+        "ggplot2"
+      ],
+      "Enhances": [
+        "zoo"
+      ],
+      "License": "GPL-2",
+      "NeedsCompilation": "yes",
+      "Author": "David James [aut] (S original), Kurt Hornik [aut, trl, cre] (<https://orcid.org/0000-0003-4198-9911>, R port), Gabor Grothendieck [ctb], R Core Team [ctb]",
+      "Maintainer": "Kurt Hornik <Kurt.Hornik@R-project.org>",
+      "Repository": "CRAN",
+      "Encoding": "UTF-8"
+    },
     "class": {
       "Package": "class",
       "Version": "7.3-23",
@@ -5672,49 +5700,6 @@
       "Maintainer": "Hadley Wickham <hadley@rstudio.com>",
       "Repository": "CRAN"
     },
-    "raster": {
-      "Package": "raster",
-      "Version": "3.6-32",
-      "Source": "Repository",
-      "Type": "Package",
-      "Title": "Geographic Data Analysis and Modeling",
-      "Date": "2025-03-27",
-      "Imports": [
-        "Rcpp",
-        "methods",
-        "terra (>= 1.8-5)"
-      ],
-      "LinkingTo": [
-        "Rcpp"
-      ],
-      "Depends": [
-        "sp (>= 1.4-5)",
-        "R (>= 3.5.0)"
-      ],
-      "Suggests": [
-        "ncdf4",
-        "igraph",
-        "tcltk",
-        "parallel",
-        "rasterVis",
-        "MASS",
-        "sf",
-        "tinytest",
-        "gstat",
-        "fields",
-        "exactextractr"
-      ],
-      "Description": "Reading, writing, manipulating, analyzing and modeling of spatial data. This package has been superseded by the \"terra\" package <https://CRAN.R-project.org/package=terra>.",
-      "License": "GPL (>= 3)",
-      "URL": "https://rspatial.org/raster",
-      "BugReports": "https://github.com/rspatial/raster/issues/",
-      "Authors@R": "c( person(\"Robert J.\", \"Hijmans\", role = c(\"cre\", \"aut\"),   email = \"r.hijmans@gmail.com\",  comment = c(ORCID = \"0000-0001-5872-2872\")), person(\"Jacob\", \"van Etten\", role = \"ctb\"), person(\"Michael\", \"Sumner\", role = \"ctb\"), person(\"Joe\", \"Cheng\", role = \"ctb\"), person(\"Dan\", \"Baston\", role = \"ctb\"), person(\"Andrew\", \"Bevan\", role = \"ctb\"), person(\"Roger\", \"Bivand\", role = \"ctb\"), person(\"Lorenzo\", \"Busetto\", role = \"ctb\"), person(\"Mort\", \"Canty\", role = \"ctb\"), person(\"Ben\", \"Fasoli\", role = \"ctb\"), person(\"David\", \"Forrest\", role = \"ctb\"), person(\"Aniruddha\", \"Ghosh\", role = \"ctb\"), person(\"Duncan\", \"Golicher\", role = \"ctb\"), person(\"Josh\", \"Gray\", role = \"ctb\"), person(\"Jonathan A.\", \"Greenberg\", role = \"ctb\"), person(\"Paul\", \"Hiemstra\", role = \"ctb\"), person(\"Kassel\", \"Hingee\", role = \"ctb\"), person(\"Alex\", \"Ilich\", role = \"ctb\"), person(\"Institute for Mathematics Applied Geosciences\", role=\"cph\"), person(\"Charles\", \"Karney\", role = \"ctb\"), person(\"Matteo\", \"Mattiuzzi\", role = \"ctb\"), person(\"Steven\", \"Mosher\", role = \"ctb\"), person(\"Babak\", \"Naimi\", role = \"ctb\"),\t person(\"Jakub\", \"Nowosad\", role = \"ctb\"), person(\"Edzer\", \"Pebesma\", role = \"ctb\"), person(\"Oscar\", \"Perpinan Lamigueiro\", role = \"ctb\"), person(\"Etienne B.\", \"Racine\", role = \"ctb\"), person(\"Barry\", \"Rowlingson\", role = \"ctb\"), person(\"Ashton\", \"Shortridge\", role = \"ctb\"), person(\"Bill\", \"Venables\", role = \"ctb\"), person(\"Rafael\", \"Wueest\", role = \"ctb\") )",
-      "NeedsCompilation": "yes",
-      "Author": "Robert J. Hijmans [cre, aut] (<https://orcid.org/0000-0001-5872-2872>), Jacob van Etten [ctb], Michael Sumner [ctb], Joe Cheng [ctb], Dan Baston [ctb], Andrew Bevan [ctb], Roger Bivand [ctb], Lorenzo Busetto [ctb], Mort Canty [ctb], Ben Fasoli [ctb], David Forrest [ctb], Aniruddha Ghosh [ctb], Duncan Golicher [ctb], Josh Gray [ctb], Jonathan A. Greenberg [ctb], Paul Hiemstra [ctb], Kassel Hingee [ctb], Alex Ilich [ctb], Institute for Mathematics Applied Geosciences [cph], Charles Karney [ctb], Matteo Mattiuzzi [ctb], Steven Mosher [ctb], Babak Naimi [ctb], Jakub Nowosad [ctb], Edzer Pebesma [ctb], Oscar Perpinan Lamigueiro [ctb], Etienne B. Racine [ctb], Barry Rowlingson [ctb], Ashton Shortridge [ctb], Bill Venables [ctb], Rafael Wueest [ctb]",
-      "Maintainer": "Robert J. Hijmans <r.hijmans@gmail.com>",
-      "Repository": "CRAN",
-      "Encoding": "UTF-8"
-    },
     "rbibutils": {
       "Package": "rbibutils",
       "Version": "2.4",
@@ -6631,7 +6616,7 @@
         "mice",
         "lubridate",
         "dplyr",
-        "raster",
+        "terra",
         "roll",
         "baytrends",
         "suncalc",
@@ -6642,7 +6627,9 @@
         "zoo",
         "argosfilter",
         "future.apply",
-        "rnaturalearthdata"
+        "rnaturalearthdata",
+        "suntools",
+        "chron"
       ],
       "Suggests": [
         "knitr",
@@ -6655,7 +6642,7 @@
       "RemoteUsername": "NINAnor",
       "RemoteRepo": "seatrack-gls",
       "RemoteRef": "main",
-      "RemoteSha": "1694f459b8f50e9f49da9f26f4b1d045e2783e88",
+      "RemoteSha": "4d757cc45516e33cbd9da1f830541966161a7288",
       "Remotes": "SLisovski/GeoLight, distancetocoast=github::mdsumner/distancetocoast, GeoLocTools=github::SLisovski/GeoLocTools, seatrackR=github::NINAnor/seatrack-db/seatrackR"
     },
     "sessioninfo": {
@@ -6888,48 +6875,6 @@
       "NeedsCompilation": "yes",
       "Repository": "CRAN"
     },
-    "sp": {
-      "Package": "sp",
-      "Version": "2.2-0",
-      "Source": "Repository",
-      "Title": "Classes and Methods for Spatial Data",
-      "Authors@R": "c(person(\"Edzer\", \"Pebesma\", role = c(\"aut\", \"cre\"), email = \"edzer.pebesma@uni-muenster.de\"), person(\"Roger\", \"Bivand\", role = \"aut\", email = \"Roger.Bivand@nhh.no\"), person(\"Barry\", \"Rowlingson\", role = \"ctb\"), person(\"Virgilio\", \"Gomez-Rubio\", role = \"ctb\"), person(\"Robert\", \"Hijmans\", role = \"ctb\"), person(\"Michael\", \"Sumner\", role = \"ctb\"), person(\"Don\", \"MacQueen\", role = \"ctb\"), person(\"Jim\", \"Lemon\", role = \"ctb\"), person(\"Finn\", \"Lindgren\", role = \"ctb\"), person(\"Josh\", \"O'Brien\", role = \"ctb\"), person(\"Joseph\", \"O'Rourke\", role = \"ctb\"), person(\"Patrick\", \"Hausmann\", role = \"ctb\"))",
-      "Depends": [
-        "R (>= 3.5.0)",
-        "methods"
-      ],
-      "Imports": [
-        "utils",
-        "stats",
-        "graphics",
-        "grDevices",
-        "lattice",
-        "grid"
-      ],
-      "Suggests": [
-        "RColorBrewer",
-        "gstat",
-        "deldir",
-        "knitr",
-        "maps",
-        "mapview",
-        "rmarkdown",
-        "sf",
-        "terra",
-        "raster"
-      ],
-      "Description": "Classes and methods for spatial data; the classes document where the spatial location information resides, for 2D or 3D data. Utility functions are provided, e.g. for plotting data as maps, spatial selection, as well as methods for retrieving coordinates, for subsetting, print, summary, etc. From this version, 'rgdal', 'maptools', and 'rgeos' are no longer used at all, see <https://r-spatial.org/r/2023/05/15/evolution4.html> for details.",
-      "License": "GPL (>= 2)",
-      "URL": "https://github.com/edzer/sp/ https://edzer.github.io/sp/",
-      "BugReports": "https://github.com/edzer/sp/issues",
-      "Collate": "bpy.colors.R AAA.R Class-CRS.R CRS-methods.R Class-Spatial.R Spatial-methods.R projected.R Class-SpatialPoints.R SpatialPoints-methods.R Class-SpatialPointsDataFrame.R SpatialPointsDataFrame-methods.R Class-SpatialMultiPoints.R SpatialMultiPoints-methods.R Class-SpatialMultiPointsDataFrame.R SpatialMultiPointsDataFrame-methods.R Class-GridTopology.R Class-SpatialGrid.R Class-SpatialGridDataFrame.R Class-SpatialLines.R SpatialLines-methods.R Class-SpatialLinesDataFrame.R SpatialLinesDataFrame-methods.R Class-SpatialPolygons.R Class-SpatialPolygonsDataFrame.R SpatialPolygons-methods.R SpatialPolygonsDataFrame-methods.R GridTopology-methods.R SpatialGrid-methods.R SpatialGridDataFrame-methods.R SpatialPolygons-internals.R point.in.polygon.R SpatialPolygons-displayMethods.R zerodist.R image.R stack.R bubble.R mapasp.R select.spatial.R gridded.R asciigrid.R spplot.R over.R spsample.R recenter.R dms.R gridlines.R spdists.R rbind.R flipSGDF.R chfids.R loadmeuse.R compassRose.R surfaceArea.R spOptions.R subset.R disaggregate.R sp_spat1.R merge.R aggregate.R elide.R sp2Mondrian.R",
-      "VignetteBuilder": "knitr",
-      "NeedsCompilation": "yes",
-      "Author": "Edzer Pebesma [aut, cre], Roger Bivand [aut], Barry Rowlingson [ctb], Virgilio Gomez-Rubio [ctb], Robert Hijmans [ctb], Michael Sumner [ctb], Don MacQueen [ctb], Jim Lemon [ctb], Finn Lindgren [ctb], Josh O'Brien [ctb], Joseph O'Rourke [ctb], Patrick Hausmann [ctb]",
-      "Maintainer": "Edzer Pebesma <edzer.pebesma@uni-muenster.de>",
-      "Repository": "CRAN",
-      "Encoding": "UTF-8"
-    },
     "spam": {
       "Package": "spam",
       "Version": "2.11-1",
@@ -7066,6 +7011,36 @@
       "Encoding": "UTF-8",
       "Author": "Benoit Thieurmel [aut, cre] (R interface), Achraf Elmarhraoui [aut] (R interface)",
       "Maintainer": "Benoit Thieurmel <bthieurmel@gmail.com>",
+      "Repository": "CRAN"
+    },
+    "suntools": {
+      "Package": "suntools",
+      "Version": "1.1.0",
+      "Source": "Repository",
+      "Date": "2025-11-05",
+      "Title": "Calculate Sun Position, Sunrise, Sunset, Solar Noon and Twilight",
+      "Authors@R": "c( person(\"Roger\", \"Bivand\", role = \"aut\", email = \"Roger.Bivand@nhh.no\", comment=c(ORCID=\"0000-0003-2392-6140\")), person(\"Adriaan M.\", \"Dokter\", role = c(\"ctb\", \"cre\"), email = \"amd427@cornell.edu\", comment = c(ORCID = \"0000-0001-6573-066X\")), person(\"Pieter\", \"Huybrechts\", role = \"ctb\", email = \"pieter.huybrechts@inbo.be\", comment = c(ORCID = \"0000-0002-6658-6062\")), person(\"Sebastian\", \"Luque\", role = \"aut\"), person(\"Greg\", \"Pelletier\", role = \"ctb\"), person(\"Alexander\", \"Tedeschi\", role = \"ctb\", email = \"at744@cornell.edu\", comment = c(ORCID = \"0000-0003-0772-6931\")))",
+      "Encoding": "UTF-8",
+      "Depends": [
+        "R (>= 2.10)"
+      ],
+      "Imports": [
+        "methods",
+        "sf",
+        "stats"
+      ],
+      "Description": "Provides a set of convenient functions for calculating sun-related information, including the sun's position (elevation and azimuth), and the times of sunrise, sunset, solar noon, and twilight for any given geographical location on Earth. These calculations are based on equations provided by the National Oceanic & Atmospheric Administration (NOAA) <https://gml.noaa.gov/grad/solcalc/calcdetails.html> as described in \"Astronomical Algorithms\" by Jean Meeus (1991, ISBN: 978-0-943396-35-4).",
+      "License": "GPL (>= 3)",
+      "URL": "https://github.com/adokter/suntools/",
+      "BugReports": "https://github.com/adokter/suntools/issues",
+      "RoxygenNote": "7.3.2",
+      "Suggests": [
+        "testthat (>= 3.0.0)"
+      ],
+      "Config/testthat/edition": "3",
+      "NeedsCompilation": "no",
+      "Author": "Roger Bivand [aut] (ORCID: <https://orcid.org/0000-0003-2392-6140>), Adriaan M. Dokter [ctb, cre] (ORCID: <https://orcid.org/0000-0001-6573-066X>), Pieter Huybrechts [ctb] (ORCID: <https://orcid.org/0000-0002-6658-6062>), Sebastian Luque [aut], Greg Pelletier [ctb], Alexander Tedeschi [ctb] (ORCID: <https://orcid.org/0000-0003-0772-6931>)",
+      "Maintainer": "Adriaan M. Dokter <amd427@cornell.edu>",
       "Repository": "CRAN"
     },
     "survival": {

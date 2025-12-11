@@ -23,7 +23,8 @@ Imports:
     tidyr,
     flextable,
     cellranger,
-    glue
+    glue,
+    zip
 Suggests: 
     knitr,
     rmarkdown,

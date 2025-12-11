@@ -66,7 +66,7 @@ get_raw_data_prev_session <- function(logger_serial_nos = c(), zip_filename = pa
         }
     }
     csv_path <- file.path(temp_dir, "metadata.csv")
-    write.csv(previous_sessions, csv_path, row.names = FALSE)
+    utils::write.csv(previous_sessions, csv_path, row.names = FALSE)
 
     zip::zip(zipfile = zip_filename, files = c(csv_path, list.dirs(temp_dir, recursive = FALSE, full.names = TRUE)), mode = "cherry-pick")
     unlink(temp_dir, recursive = TRUE)

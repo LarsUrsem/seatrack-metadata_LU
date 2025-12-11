@@ -12,3 +12,4 @@ docs
 .devcontainer
 /test/
 .Renviron
+app.log

@@ -4,10 +4,25 @@
 \alias{gls_metadata}
 \title{Get metadata from database based on GLS files in import directory}
 \usage{
-gls_metadata(import_directory, no_pos_only = TRUE)
+gls_metadata(
+  import_directory,
+  colony = NULL,
+  species = NULL,
+  time_windows = TRUE,
+  split_years = "06-01",
+  no_pos_only = TRUE
+)
 }
 \arguments{
 \item{import_directory}{Path to the directory containing GLS files.}
+
+\item{colony}{Colony name to filter metadata. Default is NULL (no filtering).}
+
+\item{species}{Species name to filter metadata. Default is NULL (no filtering).}
+
+\item{time_windows}{Logical indicating whether to split metadata into time windows based on deployment/retrieval dates. Default is TRUE.}
+
+\item{split_years}{Character string indicating the month and day to split years for calibration (e.g., "06-01" for June 1st). Default is "06-01".}
 
 \item{no_pos_only}{Logical indicating whether to include only loggers without position data in the database. Default is TRUE.}
 }
