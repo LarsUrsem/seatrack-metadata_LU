@@ -18,13 +18,15 @@ get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
             data_list <- lapply(logger_idx, function(logger_idx_i) {
                 import_sheet$data$STARTUP_SHUTDOWN[logger_idx_i, ]
             })
-            data_rows <- do.call(rbind, data_list)
-            return(list(path = import_sheet$path, data = data_rows, list_index = i, row_index = logger_idx))
+            return(lapply(seq_len(length(data_list)), function(j) {
+                list(path = import_sheet$path, data = data_list[[j]], list_index = i, row_index = logger_idx[j])
+            }))
         }
     })
+    search_result <- do.call(c, search_result)
     search_result_nonull <- search_result[which(!sapply(search_result, is.null))]
-    search_result_nodups <- search_result_nonull[which(!duplicated(sapply(search_result_nonull, function(x) x$path)))]
-    return(search_result_nodups)
+    # search_result_nodups <- search_result_nonull[which(!duplicated(sapply(search_result_nonull, function(x) x$path)))]
+    return(search_result_nonull)
 }
 
 #' Find a logger's unfinished session in the master startup data frame

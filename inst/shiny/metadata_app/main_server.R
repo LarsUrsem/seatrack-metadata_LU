@@ -65,9 +65,10 @@ main_server <- function(id) {
                 x <- unique_sheets_only[[i]]
                 new_x <- save_master_sheet(x, modified_only = TRUE)
                 unique_sheets_only[[i]] <- new_x
-                locations <- modify_master_import_in_list(locations, end_session_result$master_sheet)
+                log_info(paste0("Saved master import sheet: ", basename(new_x$path)))
+                locations <- modify_master_import_in_list(locations, new_x)
             }
-            all_locations(new_locations)
+            all_locations(locations)
             unsaved(FALSE)
             busy(FALSE)
         })

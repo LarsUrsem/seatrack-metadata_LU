@@ -437,7 +437,7 @@ save_all_modified <- function(all_master_sheets) {
 #' @param filepath A string specifying the path and name of the Excel file to be created. If NULL will be path of the loaded sheet.
 #' @param modified_only Only save the file if the sheet has been flagged as modified.
 #'
-#' @return No return value.
+#' @return The function returns the updated LoadedWB object after saving.
 #'
 #' @examples
 #' \dontrun{
