@@ -26,10 +26,9 @@ load_sheets_as_list <- function(
     log_trace("Loading file: ", file_path)
     wb <- openxlsx2::wb_load(file_path)
     # Iterate through sheets and read data
-print(col_upper)
 
     data_list <- lapply(1:length(sheets), function(sheet_index) {
-        print(sheet_index)
+
         sheet <- sheets[sheet_index]
         sheet_col_types <- col_types[[sheet_index]]
         sheet_upper <- col_upper[[sheet_index]]

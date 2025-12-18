@@ -4,6 +4,7 @@
 #'
 #' @param log_dir A character string specifying the directory where the log file will be saved. If NULL, the log file will be saved in the current working directory.
 #' @param log_file A character string specifying the name of the log file. Default is "seatrack_functions_log.txt".
+#' @param silent Boolean. If FALSE, logger will not log that it has start logging.
 #' @return None
 #'
 #' @examples
@@ -12,7 +13,7 @@
 #' }
 #' @export
 #' @concept setup
-start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_log_", Sys.Date(), ".txt")) {
+start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_log_", Sys.Date(), ".txt"), silent = FALSE) {
     if (!is.null(log_dir)) {
         if (!dir.exists(log_dir)) {
             dir.create(log_dir, recursive = TRUE)
@@ -22,7 +23,12 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 
     log_appender(appender_tee(log_file))
     log_threshold(INFO)
-    log_info("Logging started. Log file: ", log_file)
+    if (!silent) {
+        log_info("Logging started. Log file: ", log_file)
+    }
+    if (!silent) {
+        log_info("Logging started. Log file: ", log_file)
+    }
 }
 
 
@@ -33,6 +39,7 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 #'
 #' @param dir A character string specifying the path to the base directory.
 #' @param language Character string specifying system language to add utf8 encoding to.
+#' @param save_path Save seatrack folder to renviron to allow reuse.
 #'
 #' @return None
 #' @examples
@@ -41,24 +48,37 @@ start_logging <- function(log_dir = NULL, log_file = paste0("seatrack_functions_
 #' }
 #' @export
 #' @concept setup
-set_sea_track_folder <- function(dir, language = "English_United Kingdom") {
-    if (!dir.exists(dir)) {
+set_sea_track_folder <- function(dir, language = "English_United Kingdom", save_path = TRUE) {
+    if (!is.null(dir) && !dir.exists(dir)) {
         log_error("The specified directory does not exist.")
         return()
     }
 
     the$sea_track_folder <- dir
-    if (file.exists(".Renviron")) {
-        environ_lines <- readLines(".Renviron")
-    } else {
-        environ_lines <- c()
+    the$master_sheet_paths <- list()
+    if (save_path) {
+        if (file.exists(".Renviron")) {
+            environ_lines <- readLines(".Renviron")
+        } else {
+            environ_lines <- c()
+        }
+        environ_lines <- environ_lines[!grepl("SEA_TRACK_FOLDER", environ_lines, fixed = TRUE)]
     }
 
-    environ_lines <- c(environ_lines, paste0("SEA_TRACK_FOLDER = '", dir, "'"))
+    if (!is.null(dir)) {
+        if (save_path) {
+            environ_lines <- c(environ_lines, paste0("SEA_TRACK_FOLDER = '", dir, "'"))
+        }
+        log_info("Sea track folder set to: ", the$sea_track_folder)
+    } else {
+        log_info("Sea track folder unset")
+    }
 
-    writeLines(unique(environ_lines), ".Renviron")
+    if (save_path) {
+        writeLines(unique(environ_lines), ".Renviron")
+    }
 
-    log_info("Sea track folder set to: ", the$sea_track_folder)
+
     if (!grepl("utf", tolower(Sys.getlocale()), fixed = TRUE)) {
         log_info("Forcing locale to allow handling of Norwegian characters")
         Sys.setlocale("LC_CTYPE", paste0(language, ".utf8"))

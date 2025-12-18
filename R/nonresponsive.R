@@ -137,9 +137,11 @@ nonresponsive_from_master <- function(all_metadata_combined, nonresponsive_list,
 #' @concept nonresponsive
 #' @export
 append_to_nonresponsive <- function(nonresponsive_list, new_nonresponsive, manufacturer) {
-    # reorder columns
-
+    if (!manufacturer %in% names(nonresponsive_list$sheets_list)) {
+        return(nonresponsive_list)
+    }
     current_rows <- nonresponsive_list$sheets_list[[manufacturer]]$data[[1]]
+
     missing_cols <- setdiff(names(current_rows), names(new_nonresponsive))
     if (length(missing_cols) > 0) {
         for (col in missing_cols) {
@@ -147,7 +149,6 @@ append_to_nonresponsive <- function(nonresponsive_list, new_nonresponsive, manuf
         }
     }
     new_nonresponsive <- new_nonresponsive[, names(current_rows)]
-
 
     all_rows <- rbind(current_rows, new_nonresponsive)
     all_rows_non_dup <- all_rows[!duplicated(all_rows$logger_serial_no), ]

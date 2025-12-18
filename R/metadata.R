@@ -16,8 +16,14 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
     }
+    log_trace("Get Master import file for colony '", colony, "', use existing paths: ", use_stored)
     if (use_stored && colony %in% names(the$master_sheet_paths)) {
-        return(the$master_sheet_paths[[colony]])
+        full_colony_file_path <- the$master_sheet_paths[[colony]]
+
+        if (file.exists(full_colony_file_path)) {
+            log_trace("Master import file for colony '", colony, "' loaded from: ", full_colony_file_path)
+            return(full_colony_file_path)
+        }
     }
     # Get the path to the master import folder
     master_import_folder <- file.path(the$sea_track_folder, "Database", "Imports_Metadata")
@@ -49,7 +55,7 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
             colony_file_name <- files[country_file_bool]
         } else {
             # Final fallback, open the file and check
-            log_info("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
+            log_trace("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
             colony_file_name <- character()
             for (import_file in files) {
                 log_trace("Check ", import_file)
@@ -75,7 +81,7 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
     }
 
     full_colony_file_path <- file.path(master_import_folder, colony_file_name)
-    log_success("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
+    log_trace("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
     the$master_sheet_paths[[colony]] <- full_colony_file_path
     return(full_colony_file_path)
 }
@@ -147,18 +153,21 @@ load_master_import <- function(colony = NULL, file_path = NULL, use_stored = TRU
 #' This function attempts to load all master import sheets available in the seatrack folder.
 #' @param combine Boolean determining whether or not to combine the sheets into a single dataframe.
 #' @param skip character vector of location names to not load.
+#' @param distinct Boolean determining whether to only keep unique sheets (non duplicated paths)
+#' @pararm use_stored Boolean determining whether previously discovered paths can be reused. Default is TRUE
 #' @return If combine is TRUE: A tibble consisting of combined metadata and startup_shutdown sheets, with an extra column for path appended to each.
 #'  Otherwise a list where every element is a LoadedWB object.
 #' @export
 #' @concept metadata
-load_all_master_import <- function(combine = TRUE, skip = c()) {
+load_all_master_import <- function(combine = TRUE, skip = c(), distinct = TRUE, use_stored = TRUE) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
     }
+    log_info(paste("Loading master imports from", the$sea_track_folder))
     all_colony <- unlist(get_all_locations())
     all_colony <- all_colony[!all_colony %in% skip]
 
-    all_paths <- lapply(all_colony, get_master_import_path)
+    all_paths <- lapply(all_colony, get_master_import_path, use_stored = use_stored)
 
     no_path <- all_colony[which(sapply(all_paths, is.null))]
     if (length(no_path) > 0) {
@@ -174,9 +183,13 @@ load_all_master_import <- function(combine = TRUE, skip = c()) {
     all_paths <- all_paths[null_path_idx]
     all_colony <- all_colony[null_path_idx]
 
-    distinct_idx <- which(!duplicated(all_paths))
-    all_colony <- all_colony[distinct_idx]
-    all_paths <- all_paths[distinct_idx]
+
+    if (distinct) {
+        distinct_idx <- which(!duplicated(all_paths))
+        all_colony <- all_colony[distinct_idx]
+        all_paths <- all_paths[distinct_idx]
+    }
+
 
     all_sheets <- lapply(all_colony, load_master_import)
 
@@ -187,6 +200,11 @@ load_all_master_import <- function(combine = TRUE, skip = c()) {
         return(all_sheets)
     }
 
+    return(combine_all_metadata(all_sheets))
+
+}
+
+combine_all_metadata <- function(all_sheets){
     all_data <- lapply(all_sheets, function(x) x$data)
     # combine metadata
     all_metadata <- lapply(all_data, function(x) x$METADATA)
@@ -273,12 +291,11 @@ get_location_unprocessed <- function(location) {
     })
     unprocessed_files <- unlist(unprocessed_files_list)
     if (length(unprocessed_files) == 0) {
-        if (length(unprocessed_files) == 0) {
-            log_info(paste("No unprocessed files found for location:", location))
-            return(NULL)
-        }
-        return(unprocessed_files)
+        log_info(paste("No unprocessed files found for location:", location))
+        return(NULL)
     }
+    return(unprocessed_files)
+
 }
 
 #' Add partner provided metadata to the master import file
@@ -297,6 +314,7 @@ get_location_unprocessed <- function(location) {
 #' @export
 #' @concept metadata
 handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = LoadedWBCollection$new()) {
+    log_info(paste("Handle partner metadata for", colony))
     if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata$data))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
     }
@@ -328,6 +346,28 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
     nonresponsive_list <- updated_sessions$nonresponsive_list
 
     return(list(master_import = master_import, nonresponsive_list = nonresponsive_list))
+}
+
+#' Given a new master import, modify all master imports in a list sharing the same path
+#'
+#' When loading all master import files with distinct = FALSE, we will end up with duplicate master import files.
+#' This is because multiple colonies can share the same master import file.
+#' If we modify one of these (for example, updating from partner metadata for that colony), we need to make sure the files stay in sync.
+#'
+#' @param all_master_import A list of master imports, as produced by load_all_master_import(combine = FALSE, distinct = FALSE)
+#' @param new_master_import A modified master import sheet to be distributed throughout the list
+modify_master_import_in_list <- function(all_master_import, new_master_import) {
+    new_master_import_path <- new_master_import$path
+
+    new_all_master_import <- lapply(all_master_import, function(x) {
+        if (x$path == new_master_import_path) {
+            return(new_master_import)
+        } else {
+            return(x)
+        }
+    })
+
+    return(new_all_master_import)
 }
 
 
@@ -397,7 +437,7 @@ save_all_modified <- function(all_master_sheets) {
 #' @param filepath A string specifying the path and name of the Excel file to be created. If NULL will be path of the loaded sheet.
 #' @param modified_only Only save the file if the sheet has been flagged as modified.
 #'
-#' @return No return value.
+#' @return The function returns the updated LoadedWB object after saving.
 #'
 #' @examples
 #' \dontrun{
@@ -499,5 +539,6 @@ save_master_sheet <- function(new_master_sheets, filepath = NULL, modified_only 
 
 
     new_master_sheets$wb$save(filepath)
-    # SET FORMATTING
+    new_master_sheets$modified <- FALSE
+    return(new_master_sheets)
 }

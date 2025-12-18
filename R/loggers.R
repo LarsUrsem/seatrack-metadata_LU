@@ -18,11 +18,14 @@ get_logger_from_metadata <- function(logger_id, all_master_import_list = NULL) {
             data_list <- lapply(logger_idx, function(logger_idx_i) {
                 import_sheet$data$STARTUP_SHUTDOWN[logger_idx_i, ]
             })
-            data_rows <- do.call(rbind, data_list)
-            return(list(path = import_sheet$path, data = data_rows, list_index = i, row_index = logger_idx))
+            return(lapply(seq_len(length(data_list)), function(j) {
+                list(path = import_sheet$path, data = data_list[[j]], list_index = i, row_index = logger_idx[j])
+            }))
         }
     })
+    search_result <- do.call(c, search_result)
     search_result_nonull <- search_result[which(!sapply(search_result, is.null))]
+    # search_result_nodups <- search_result_nonull[which(!duplicated(sapply(search_result_nonull, function(x) x$path)))]
     return(search_result_nonull)
 }
 
@@ -120,7 +123,7 @@ end_logger_session <- function(logger_id, logger_status, downloaded_by = "", dow
     if (is.null(download_date)) {
         download_date <- as.Date(Sys.time())
     }
-    new_data <- list(download_type = logger_status, downloaded_by = downloaded_by, download_date = download_date, shutdown_date = shutdown_date, comment = comment)
+    new_data <- list(download_type = logger_status, downloaded_by = downloaded_by, download_date = download_date, shutdown_date = download_date, comment = comment)
     result_list <- modify_logger_status(logger_id, new_data, master_sheet, all_master_sheet, nonresponsive_list)
     return(result_list)
 }
@@ -151,6 +154,8 @@ modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NU
     }
     if (!"download_date" %in% names(new_data)) {
         download_date <- as.Date(Sys.time())
+    } else {
+        download_date <- new_data$download_date
     }
     # Check for an open session
     unfinished_session <- get_unfinished_session(master_sheet$data$STARTUP_SHUTDOWN, logger_id, download_date)
@@ -171,7 +176,7 @@ modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NU
 
     if ("download_type" %in% names(new_data) && new_data$download_type == "Nonresponsive") {
         nonresponsive_for_manufacturer <- master_sheet$data$STARTUP_SHUTDOWN[unfinished_session$index, ]
-        manufacturer <- lower(nonresponsive_for_manufacturer$manufacturer)
+        manufacturer <- tolower(nonresponsive_for_manufacturer$producer)
 
         new_nonresponsive <- tibble(
             logger_serial_no = nonresponsive_for_manufacturer$logger_serial_no,
@@ -193,6 +198,7 @@ modify_logger_status <- function(logger_id, new_data = list(), master_sheet = NU
         )
 
         nonresponsive_list <- append_to_nonresponsive(nonresponsive_list, new_nonresponsive, manufacturer)
+
     }
     master_sheet$modified <- TRUE
     return(list(master_sheet = master_sheet, nonresponsive_list = nonresponsive_list))

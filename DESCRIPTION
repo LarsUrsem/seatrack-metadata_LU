@@ -24,6 +24,12 @@ Imports:
     flextable,
     cellranger,
     glue,
+    shiny,
+    shinyFiles,
+    fs,
+    shinybusy,
+    shinyjs,
+    DT,
     zip
 Suggests: 
     knitr,
