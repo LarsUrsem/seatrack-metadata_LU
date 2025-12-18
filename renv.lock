@@ -6742,7 +6742,7 @@
       "RemoteUsername": "NINAnor",
       "RemoteRepo": "seatrack-gls",
       "RemoteRef": "main",
-      "RemoteSha": "e4ed9a7044a05f45037fa7e302b45038ec3fd607",
+      "RemoteSha": "4d757cc45516e33cbd9da1f830541966161a7288",
       "Remotes": "SLisovski/GeoLight, distancetocoast=github::mdsumner/distancetocoast, GeoLocTools=github::SLisovski/GeoLocTools, seatrackR=github::NINAnor/seatrack-db/seatrackR"
     },
     "sessioninfo": {
