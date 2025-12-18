@@ -90,6 +90,7 @@ folder_selector_server <- function(id, busy, all_locations) {
                     }) |>
                         then(\(x) all_locations(x)) |>
                         finally(\() {
+                            all_locations(all_locations()[order(names(all_locations()))])
                             log_success("Finished loading locations")
                             busy(FALSE)
                         })

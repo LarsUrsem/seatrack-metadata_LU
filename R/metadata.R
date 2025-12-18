@@ -16,12 +16,12 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
     if (is.null(the$sea_track_folder)) {
         stop("Sea track folder is not set. Please use set_sea_track_folder() to set it.")
     }
-    log_info("Get Master import file for colony '", colony, "', use existing paths: ", use_stored)
+    log_trace("Get Master import file for colony '", colony, "', use existing paths: ", use_stored)
     if (use_stored && colony %in% names(the$master_sheet_paths)) {
         full_colony_file_path <- the$master_sheet_paths[[colony]]
 
         if (file.exists(full_colony_file_path)) {
-            log_success("Master import file for colony '", colony, "' loaded from: ", full_colony_file_path)
+            log_trace("Master import file for colony '", colony, "' loaded from: ", full_colony_file_path)
             return(full_colony_file_path)
         }
     }
@@ -55,7 +55,7 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
             colony_file_name <- files[country_file_bool]
         } else {
             # Final fallback, open the file and check
-            log_info("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
+            log_trace("Master import file for colony '", colony, "' not found by location or country. Checking intended_location")
             colony_file_name <- character()
             for (import_file in files) {
                 log_trace("Check ", import_file)
@@ -81,7 +81,7 @@ get_master_import_path <- function(colony, use_stored = TRUE) {
     }
 
     full_colony_file_path <- file.path(master_import_folder, colony_file_name)
-    log_success("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
+    log_trace("Master import file for colony '", colony, "' found at: ", full_colony_file_path)
     the$master_sheet_paths[[colony]] <- full_colony_file_path
     return(full_colony_file_path)
 }
@@ -291,12 +291,11 @@ get_location_unprocessed <- function(location) {
     })
     unprocessed_files <- unlist(unprocessed_files_list)
     if (length(unprocessed_files) == 0) {
-        if (length(unprocessed_files) == 0) {
-            log_info(paste("No unprocessed files found for location:", location))
-            return(NULL)
-        }
-        return(unprocessed_files)
+        log_info(paste("No unprocessed files found for location:", location))
+        return(NULL)
     }
+    return(unprocessed_files)
+
 }
 
 #' Add partner provided metadata to the master import file
@@ -315,6 +314,7 @@ get_location_unprocessed <- function(location) {
 #' @export
 #' @concept metadata
 handle_partner_metadata <- function(colony, new_metadata, master_import, nonresponsive_list = LoadedWBCollection$new()) {
+    log_info(paste("Handle partner metadata for", colony))
     if (!all(c("ENCOUNTER DATA", "LOGGER RETURNS", "RESTART TIMES") %in% names(new_metadata$data))) {
         stop("new_metadata must contain the sheets: ENCOUNTER DATA, LOGGER RETURNS, RESTART TIMES")
     }
@@ -358,7 +358,7 @@ handle_partner_metadata <- function(colony, new_metadata, master_import, nonresp
 #' @param new_master_import A modified master import sheet to be distributed throughout the list
 modify_master_import_in_list <- function(all_master_import, new_master_import) {
     new_master_import_path <- new_master_import$path
-    print(new_master_import_path)
+
     new_all_master_import <- lapply(all_master_import, function(x) {
         if (x$path == new_master_import_path) {
             return(new_master_import)

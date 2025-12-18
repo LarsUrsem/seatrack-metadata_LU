@@ -15,6 +15,7 @@ main_server <- function(id) {
             sea_track_path(folder_select$folder)
         })
         manager_loggers <- manage_logger_server("manage_loggers", busy, all_locations, unsaved)
+        manage_metadata <- manage_metadata_server("manage_metadata", busy, all_locations, unsaved)
         # Export nonresponsive
         # Mastersheet viewer
         # Import partner metadata

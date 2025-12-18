@@ -125,7 +125,7 @@ manage_logger_server <- function(id, busy, all_locations, unsaved) {
             busy(TRUE)
             log_info(paste("Searching for logger", input$logger_search))
             logger_search_result <- get_logger_from_metadata(input$logger_search, all_locations())
-            print(logger_search_result)
+
 
             if (length(logger_search_result) > 0) {
                 log_info(paste("Logger", input$logger_search, "found"))
@@ -133,7 +133,7 @@ manage_logger_server <- function(id, busy, all_locations, unsaved) {
                     x$open <- is.na(x$data$download_date) & is.na(x$data$shutdown_date)
                     return(x)
                 })
-                print(logger_search_result)
+
 
                 search_results(logger_search_result)
             } else {

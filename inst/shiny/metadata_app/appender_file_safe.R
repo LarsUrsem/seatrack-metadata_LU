@@ -7,6 +7,7 @@ appender_file_safe <- function(file) {
 
         tryCatch(
             {
+                print(line)
                 con <- file(file, open = "a")
                 writeLines(line, con)
                 close(con)

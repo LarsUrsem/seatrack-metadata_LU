@@ -204,7 +204,7 @@ gls_get_existing_calibration <- function(existing_calibration_dir = file.path(th
 #' @export
 #' @concept gls_helper
 gls_metadata <- function(import_directory, colony = NULL, species = NULL, time_windows = TRUE, split_years = "06-01", no_pos_only = TRUE) {
-    print("Scan import directory for files...")
+    log_info("Scan import directory for files...")
     all_files <- list.files(import_directory, pattern = "*.lux|*.lig", recursive = TRUE, full.names = TRUE)
     all_files_split <- strsplit(basename(all_files), "_")
     file_info_list <- lapply(all_files_split, function(x) {

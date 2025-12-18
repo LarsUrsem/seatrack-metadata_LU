@@ -11,7 +11,12 @@ source("main_server.R")
 source("folder_selector.R")
 source("manage_loggers.R")
 source("log_display.R")
+source("manage_metadata.R")
+source("manage_partner_metadata.R")
+
 source("appender_file_safe.R")
+source("mod_dt_tabs.R")
+
 plan(multisession)
 
 library(logger)

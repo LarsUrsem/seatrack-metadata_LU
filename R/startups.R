@@ -195,7 +195,7 @@ set_master_startup_value <- function(master_startup, index, column, value) {
 #' @export
 #' @concept startups
 set_comments <- function(master_startup, index, logger_comments) {
-    print(logger_comments)
+
     if (!is.null(logger_comments) && !is.na(logger_comments) && logger_comments != "") {
         # If there is a comment:
         if (is.na(master_startup$comment[index]) || master_startup$comment[index] == "") {

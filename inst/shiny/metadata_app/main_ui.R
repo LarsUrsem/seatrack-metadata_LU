@@ -38,11 +38,25 @@ main_ui <- function(id) {
       nav_panel(
         "Manage loggers",
         manage_logger_ui(ns("manage_loggers"))
-      )
+      ),
+      nav_panel(
+        "Manage metadata",
+        manage_metadata_ui(ns("manage_metadata"))
+      ),
+      full_screen = TRUE
     ),
     add_busy_spinner(spin = "fading-circle", position = "bottom-left"),
     use_busy_spinner(spin = "fading-circle", position = "bottom-left", spin_id = ns("main_spinner"), color = "red"),
     card(logger_ui(ns("logger"))),
-    theme = theme
+    theme = theme,
+    tags$head(tags$style(
+    HTML(
+      "
+        .bslib-full-screen-enter {
+          bottom: var(--bslib-full-screen-enter-bottom);
+        }
+      "
+    )
+  ))
   )
 }
