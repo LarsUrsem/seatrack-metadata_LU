@@ -1,5 +1,8 @@
 #' Extracts data from the SEATRACK DB and prepares it for the ColonyRepr functions
 #'
+#' This function will extract gls positional data for the specified species-colony. An active connection with the data base is required for this.
+#' It will then prepare the extracted data to be used in the ColonyRepr functions
+#'
 #' @param species specify the species you'd like to extract the data from
 #' @param colony specify the colony you'd like to select the data from
 #'
@@ -75,6 +78,11 @@ Prep_SEATRACK_data_for_ColonyRepr <- function(species,
 
 
 #' Function to extract desired data from the SEATRACK database and fully run the colony representativeness analysis
+#'
+#' This is a wrapper function around `Prep_SEATRACK_data_for_ColonyRepr()` and the analysis pipeline.
+#' It will thus extract the specified gls positional data and plug it into the pipeline that will produce
+#' a listed output with various elements that can be used to indicate captured colony representativeness.
+#' An active connection with the SEATRACK data base is required.
 #'
 #' @param species Specify species of interest (numeric)
 #' @param colony Specify colony of interest (numeric)
