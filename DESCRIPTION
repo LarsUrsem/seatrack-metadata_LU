@@ -37,7 +37,7 @@ Suggests:
     testthat (>= 3.0.0)
 Remotes:
     seatrackR=github::NINAnor/seatrackR,
-    seatrackRgls=github::NINAnor/seatrack-gls,
+    seatrackRgls=github::NINAnor/seatrackRgls,
     ColonyRepr=github::LarsUrsem/ColonyRepr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
